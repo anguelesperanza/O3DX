@@ -381,43 +381,43 @@ odin_main:
 	mov	pc, lr
 	.p2align	2
 .LCPI0_0:
-	.long	".Lcsbs$Input-Example$2"
-.LCPI0_1:
-	.long	".Lcsbs$Input-Example$3"
-.LCPI0_2:
-	.long	".Lcsbs$Input-Example$4"
-.LCPI0_3:
 	.long	".Lcsbs$Input-Example$5"
-.LCPI0_4:
+.LCPI0_1:
 	.long	".Lcsbs$Input-Example$6"
-.LCPI0_5:
+.LCPI0_2:
 	.long	".Lcsbs$Input-Example$7"
-.LCPI0_6:
+.LCPI0_3:
 	.long	".Lcsbs$Input-Example$8"
-.LCPI0_7:
+.LCPI0_4:
 	.long	".Lcsbs$Input-Example$9"
-.LCPI0_8:
+.LCPI0_5:
 	.long	".Lcsbs$Input-Example$a"
-.LCPI0_9:
+.LCPI0_6:
 	.long	".Lcsbs$Input-Example$b"
-.LCPI0_10:
+.LCPI0_7:
 	.long	".Lcsbs$Input-Example$c"
-.LCPI0_11:
+.LCPI0_8:
 	.long	".Lcsbs$Input-Example$d"
-.LCPI0_12:
+.LCPI0_9:
 	.long	".Lcsbs$Input-Example$e"
-.LCPI0_13:
+.LCPI0_10:
 	.long	".Lcsbs$Input-Example$f"
-.LCPI0_14:
+.LCPI0_11:
+	.long	".Lcsbs$Input-Example$10"
+.LCPI0_12:
 	.long	".Lcsbs$Input-Example$11"
-.LCPI0_15:
+.LCPI0_13:
 	.long	".Lcsbs$Input-Example$12"
-.LCPI0_16:
-	.long	".Lcsbs$Input-Example$13"
-.LCPI0_17:
+.LCPI0_14:
 	.long	".Lcsbs$Input-Example$14"
-.LCPI0_18:
+.LCPI0_15:
 	.long	".Lcsbs$Input-Example$15"
+.LCPI0_16:
+	.long	".Lcsbs$Input-Example$16"
+.LCPI0_17:
+	.long	".Lcsbs$Input-Example$17"
+.LCPI0_18:
+	.long	".Lcsbs$Input-Example$18"
 .Lfunc_end0:
 	.size	odin_main, .Lfunc_end0-odin_main
 	.fnend
@@ -683,109 +683,109 @@ __extendhfsf2:
 	.cantunwind
 	.fnend
 
-	.type	".Lcsbs$Input-Example$2",%object
-	.section	.rodata,"a",%progbits
-".Lcsbs$Input-Example$2":
-	.asciz	"romfs:/player.t3x"
-	.size	".Lcsbs$Input-Example$2", 18
-
-	.type	".Lcsbs$Input-Example$3",%object
-".Lcsbs$Input-Example$3":
-	.asciz	"\033[7;1HDRight pressed "
-	.size	".Lcsbs$Input-Example$3", 22
-
-	.type	".Lcsbs$Input-Example$4",%object
-".Lcsbs$Input-Example$4":
-	.asciz	"\033[8;1HDLeft pressed  "
-	.size	".Lcsbs$Input-Example$4", 22
-
 	.type	".Lcsbs$Input-Example$5",%object
+	.section	.rodata,"a",%progbits
 ".Lcsbs$Input-Example$5":
-	.asciz	"\033[9;1HDUp pressed    "
-	.size	".Lcsbs$Input-Example$5", 22
+	.asciz	"romfs:/player.t3x"
+	.size	".Lcsbs$Input-Example$5", 18
 
 	.type	".Lcsbs$Input-Example$6",%object
 ".Lcsbs$Input-Example$6":
-	.asciz	"\033[10;1HDDown pressed  "
-	.size	".Lcsbs$Input-Example$6", 23
+	.asciz	"\033[7;1HDRight pressed "
+	.size	".Lcsbs$Input-Example$6", 22
 
 	.type	".Lcsbs$Input-Example$7",%object
 ".Lcsbs$Input-Example$7":
-	.asciz	"\033[11;1HA pressed  "
-	.size	".Lcsbs$Input-Example$7", 19
+	.asciz	"\033[8;1HDLeft pressed  "
+	.size	".Lcsbs$Input-Example$7", 22
 
 	.type	".Lcsbs$Input-Example$8",%object
 ".Lcsbs$Input-Example$8":
-	.asciz	"\033[12;1HB pressed  "
-	.size	".Lcsbs$Input-Example$8", 19
+	.asciz	"\033[9;1HDUp pressed    "
+	.size	".Lcsbs$Input-Example$8", 22
 
 	.type	".Lcsbs$Input-Example$9",%object
 ".Lcsbs$Input-Example$9":
-	.asciz	"\033[13;1HX pressed  "
-	.size	".Lcsbs$Input-Example$9", 19
+	.asciz	"\033[10;1HDDown pressed  "
+	.size	".Lcsbs$Input-Example$9", 23
 
 	.type	".Lcsbs$Input-Example$a",%object
 ".Lcsbs$Input-Example$a":
-	.asciz	"\033[14;1HY pressed  "
+	.asciz	"\033[11;1HA pressed  "
 	.size	".Lcsbs$Input-Example$a", 19
 
 	.type	".Lcsbs$Input-Example$b",%object
 ".Lcsbs$Input-Example$b":
-	.asciz	"\033[15;1HL pressed  "
+	.asciz	"\033[12;1HB pressed  "
 	.size	".Lcsbs$Input-Example$b", 19
 
 	.type	".Lcsbs$Input-Example$c",%object
 ".Lcsbs$Input-Example$c":
-	.asciz	"\033[16;1HR pressed  "
+	.asciz	"\033[13;1HX pressed  "
 	.size	".Lcsbs$Input-Example$c", 19
 
 	.type	".Lcsbs$Input-Example$d",%object
 ".Lcsbs$Input-Example$d":
-	.asciz	"\033[17;1HZL pressed     "
-	.size	".Lcsbs$Input-Example$d", 23
+	.asciz	"\033[14;1HY pressed  "
+	.size	".Lcsbs$Input-Example$d", 19
 
 	.type	".Lcsbs$Input-Example$e",%object
 ".Lcsbs$Input-Example$e":
-	.asciz	"\033[18;1HZR pressed     "
-	.size	".Lcsbs$Input-Example$e", 23
+	.asciz	"\033[15;1HL pressed  "
+	.size	".Lcsbs$Input-Example$e", 19
 
 	.type	".Lcsbs$Input-Example$f",%object
 ".Lcsbs$Input-Example$f":
-	.asciz	"\033[19;1HSELECT pressed "
-	.size	".Lcsbs$Input-Example$f", 23
+	.asciz	"\033[16;1HR pressed  "
+	.size	".Lcsbs$Input-Example$f", 19
+
+	.type	".Lcsbs$Input-Example$10",%object
+".Lcsbs$Input-Example$10":
+	.asciz	"\033[17;1HZL pressed     "
+	.size	".Lcsbs$Input-Example$10", 23
 
 	.type	".Lcsbs$Input-Example$11",%object
 ".Lcsbs$Input-Example$11":
-	.asciz	"\033[1;1HInput example                "
-	.size	".Lcsbs$Input-Example$11", 36
+	.asciz	"\033[18;1HZR pressed     "
+	.size	".Lcsbs$Input-Example$11", 23
 
 	.type	".Lcsbs$Input-Example$12",%object
 ".Lcsbs$Input-Example$12":
-	.asciz	"\033[2;1HPress START to exit          "
-	.size	".Lcsbs$Input-Example$12", 36
-
-	.type	".Lcsbs$Input-Example$13",%object
-".Lcsbs$Input-Example$13":
-	.asciz	"\033[3;1HPos: %.1f, %.1f      "
-	.size	".Lcsbs$Input-Example$13", 28
+	.asciz	"\033[19;1HSELECT pressed "
+	.size	".Lcsbs$Input-Example$12", 23
 
 	.type	".Lcsbs$Input-Example$14",%object
 ".Lcsbs$Input-Example$14":
-	.asciz	"\033[4;1HCircle: %d, %d      "
-	.size	".Lcsbs$Input-Example$14", 27
+	.asciz	"\033[1;1HInput example                "
+	.size	".Lcsbs$Input-Example$14", 36
 
 	.type	".Lcsbs$Input-Example$15",%object
 ".Lcsbs$Input-Example$15":
-	.asciz	"\033[5;1HCStick: %d, %d      "
-	.size	".Lcsbs$Input-Example$15", 27
+	.asciz	"\033[2;1HPress START to exit          "
+	.size	".Lcsbs$Input-Example$15", 36
 
-	.type	"runtime::default_random_generator_proc-.state-3241",%object
+	.type	".Lcsbs$Input-Example$16",%object
+".Lcsbs$Input-Example$16":
+	.asciz	"\033[3;1HPos: %.1f, %.1f      "
+	.size	".Lcsbs$Input-Example$16", 28
+
+	.type	".Lcsbs$Input-Example$17",%object
+".Lcsbs$Input-Example$17":
+	.asciz	"\033[4;1HCircle: %d, %d      "
+	.size	".Lcsbs$Input-Example$17", 27
+
+	.type	".Lcsbs$Input-Example$18",%object
+".Lcsbs$Input-Example$18":
+	.asciz	"\033[5;1HCStick: %d, %d      "
+	.size	".Lcsbs$Input-Example$18", 27
+
+	.type	"runtime::default_random_generator_proc-.state-4242",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-3241"
+	.globl	"runtime::default_random_generator_proc-.state-4242"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-3241":
+"runtime::default_random_generator_proc-.state-4242":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-3241", 1032
+	.size	"runtime::default_random_generator_proc-.state-4242", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

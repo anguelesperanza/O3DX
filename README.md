@@ -1,102 +1,304 @@
-### 3dsLib (temp name)
+# 3DS Odin
 
-A repository showing different examples on how to use Odin to compile on the 3DS.
+A repository showing how to use the Odin programming language to develop for the Nintendo 3DS, with complete bindings for Citro2D and Citro3D.
 
-Special thanks to Ske (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and POC.
+Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and proof-of-concept.
 
-## Differences with this repository
+---
 
-This repository looks to see how far `odin` can be used to develop for the 3DS.
-The orignal code from ske is included under `POC-Example` with only the make file changed to a `build.bat`.
+## What this repository does
 
-As there is a lot of knowledge needed for this to work, AI is used in this development to help bridge the gap of knowledge,
-work through bugs, failed build states, and generate bindings in both `bindings.odin` and `main.c`. 
+This repository explores how far Odin can be pushed for 3DS homebrew development.
+The original code from Ske is preserved under `POC-Example/`.
 
-Unless not possible, all examples will use a `build.bat` file instead of a makefile.
+AI is used in this development to help bridge knowledge gaps, work through bugs, and generate bindings.
 
-Odin was designed with Modern Systems in mind and is probably not the best in slot for 3DS content.
+Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 
-NOTE: The `main.c` files may show import errors regarding 3ds.h depending on the IDE/Text Editor. Assuming DevKitPro was setup correctly you can ignore this. The editor cannot find the header file but it's there with DevKitPro
+> **Note:** `main.c` files may show import errors for 3DS headers depending on your IDE. If DevKitPro is installed correctly you can ignore these — the editor cannot locate the headers but GCC can.
+
+---
 
 ## Requirements
-The following are requirements to get the examples running.
 
-1) Odin Language
-2) DevKit Pro
-3) GCC (MSVC can probably be used. Best to use AI to convert the build.bat to use MSVC instead of GCC)
+1. [Odin Language](https://odin-lang.org/)
+2. [DevKitPro](https://devkitpro.org/) — with `3ds-dev` installed
+3. GCC (arm-none-eabi from DevKitPro — MSVC is not tested)
 
-## How this works
-In each examples folder is a `build.bat` file; run those files to compile a 3DS exectutable and save them to a output folder.
+---
 
-`odin build .` and `odin run .` will not work by themselves to create a 3DS executable.
-
-The idea here is as follows:
-
-1) Expose Citro2D and Citro3D to Odin
-2) Create wrappers to use with Odin
-3) Use Odin main proc to run application
-4) Compile to arm32 assembly (freestanding target)
-5) Use DevKitPro to compile code into 3DS Executable
-
-## Foreign Imports
-
-You will notice foreign imports that already exist in Odin.
-
-For example `printf`. In order to compile to the 3DS, we need to turn off/not include certain things form Odin.
-That would leave us without a printf to use, so we need to make our own foreign import for it.
-
-## Why every example has both `main.c` and `bindings.odin`
-
-IMPORTANT: As examples are built iterativly and on top of one another, each example will have a different
-version of `main.c`, `bindings.odin`, `build.bat`. For the full, final completed version of these files please see them in `bindings` (folder)
-
-These two files are different halves of the same bridge between Odin and the 3DS libraries.
-
-### `bindings.odin` — declarations (no compiled code)
-
-This file tells the **Odin compiler** what external functions exist, what their names are, and what types they take and return. No machine code is produced from it. Without it, the Odin compiler refuses to build because it has never heard of `C2D_DrawTriangle` or `gfxInitDefault`.
-
-### `main.c` — actual compiled code
-
-This file contains two things:
-
-**1. The entry point shim**
-
-The 3DS `crt0` calls a C `main()` function. Odin reserves the name `main` internally and cannot export it directly, so `main.c` provides a one-liner that immediately calls into `odin_main`, which is the real Odin entry point.
-
-```c
-int main(int argc, char* argv[]) {
-    return odin_main(argc, argv);
-}
-```
-
-**2. ABI bridge wrappers**
-
-Odin's `freestanding_arm32` target generates **soft-float ABI** code. This means when Odin calls a function with `float` arguments, it passes them as raw 32-bit patterns through general registers (`r0`, `r1`, `r2`...).
-
-devkitARM's libctru (citro2d, citro3d) is compiled with **hard-float ABI**. It expects `float` arguments in the VFP floating-point registers (`s0`, `s1`, `s2`...).
-
-These two conventions are completely incompatible. If Odin calls `C2D_DrawTriangle` directly, the function looks in `s0` for the x coordinate but finds whatever garbage was already there. Nothing renders.
-
-The fix is wrapper functions in `main.c` (compiled by GCC with `-mfloat-abi=hard`) that:
-1. Accept all parameters as `uint32_t` — both soft-float Odin and hard-float C pass integers through general registers, so the bit patterns arrive correctly
-2. Reinterpret those bit patterns as `float` using `memcpy`
-3. Forward them to the real hard-float citro2d functions, which now receive them in the correct VFP registers
+## Repository Structure
 
 ```
-Odin (soft-float)      main.c wrapper (hard-float)    libctru (hard-float)
-─────────────────      ───────────────────────────    ────────────────────
-f32 bits → r0      →   uint32_t x = r0            →   float x in s0  ✓
-f32 bits → r1      →   uint32_t y = r1            →   float y in s1  ✓
-u32      → r2      →   uint32_t clr = r2          →   u32 clr in r0  ✓
+3ds-odin/
+├── lib/                        ← Shared Odin package library (use these in your own projects)
+│   ├── bridge_utils.h          ← Shared u2f / f2u helpers for ABI bridge .c files
+│   ├── ctru/
+│   │   ├── ctru.odin           ← libctru bindings (gfx, input, console, romfs, etc.)
+│   │   └── bridge.c            ← Wrappers for static-inline libctru functions
+│   ├── c2d/
+│   │   ├── types.odin          ← Citro2D types (C2D_Image, C2D_ImageTint, C2D_Sprite, …)
+│   │   ├── base.odin           ← Core drawing, tinting, view transforms ✅
+│   │   ├── text.odin           ← Text rendering stubs 🔲 (Phase 3)
+│   │   ├── font.odin           ← Font loading stubs 🔲 (Phase 4)
+│   │   ├── sprite.odin         ← Sprite helper stubs 🔲 (Phase 4)
+│   │   ├── spritesheet.odin    ← SpriteSheet stubs 🔲 (Phase 4)
+│   │   └── bridge.c            ← ABI bridge for all float-param Citro2D functions
+│   └── c3d/
+│       ├── types.odin          ← Citro3D types + all GPU_* enums ✅
+│       ├── base.odin           ← Full C3D foreign bindings (declared) ✅
+│       ├── math.odin           ← Math stubs (FVec, Mtx, Quat) 🔲 (Phase 8)
+│       └── bridge.c            ← ABI bridge for all float-param Citro3D functions
+│
+├── Examples/
+│   ├── POC-Example/            ← Original Ske proof-of-concept
+│   ├── Shapes-Example/         ← Basic shapes via C2D ✅
+│   ├── Image-Example/          ← Loading and displaying a .t3x sprite ✅
+│   ├── Input-Example/          ← Button, circle pad, touch input ✅
+│   ├── DrawLine-Example/       ← C2D_DrawLine ✅
+│   ├── DrawRectSolid-Example/  ← C2D_DrawRectSolid ✅
+│   ├── DrawEllipseSolid-Example/ ← C2D_DrawEllipseSolid ✅
+│   ├── DrawImageAtRotated-Example/ ← C2D_DrawImageAtRotated ✅
+│   ├── ViewTranslate-Example/  ← C2D_ViewTranslate ✅
+│   ├── ViewScale-Example/      ← C2D_ViewScale ✅
+│   ├── ViewRotate-Example/     ← C2D_ViewRotate ✅
+│   ├── ViewShear-Example/      ← C2D_ViewShear ✅
+│   ├── PlainImageTint-Example/ ← C2D_PlainImageTint ✅
+│   ├── AlphaImageTint-Example/ ← C2D_AlphaImageTint ✅
+│   ├── SetImageTint-Example/   ← C2D_SetImageTint ✅
+│   ├── Color32f-Example/       ← C2D_Color32f ✅
+│   ├── Fade-Example/           ← C2D_Fade ✅
+│   └── SetTintMode-Example/    ← C2D_SetTintMode ✅
+│
+└── tools/
+    └── png2t3x.exe             ← PNG → .t3x converter (workaround for a Windows bug in the DevKitPro tool)
 ```
 
-In short: `bindings.odin` is the Odin compiler's view of what exists. `main.c` is the actual glue code that makes the two ABIs talk to each other at runtime.
+---
 
-(1. The entry point shim and 2. ABI bridge wrappers was generated by AI)
+## How it works
 
-## Tools Folder
+### Build pipeline
 
-`png2t3x.exe` will convert a png to a t3x file. The t3x tool used by DevKitPro/Citro seems to have a windows bug. As such, I created this tool to
-do the same thing.
+`odin build .` and `odin run .` alone cannot produce a 3DS executable.
+The `build.bat` in each example drives the full pipeline:
 
+```
+Odin source
+   │  odin build . -target:freestanding_arm32 -o:speed -build-mode:asm -no-entry-point -min-link-libs -no-thread-local
+   ▼
+ARM assembly (.S)
+   │  arm-none-eabi-gcc -march=armv6k -mfloat-abi=hard
+   ▼
+Object files (.o)  ←── also: main.c  +  lib/*/bridge.c
+   │  arm-none-eabi-gcc -specs=3dsx.specs -lcitro2d -lcitro3d -lctru
+   ▼
+ELF executable
+   │  3dsxtool + smdhtool
+   ▼
+app.3dsx  (run on hardware or in Citra)
+```
+
+### ABI bridge — why it exists
+
+Odin's `freestanding_arm32` target generates **soft-float ABI** code: `float` arguments travel in general-purpose registers (`r0`, `r1`, …).
+
+DevKitARM's libctru / citro2d / citro3d are compiled with **hard-float ABI**: `float` arguments are expected in VFP registers (`s0`, `s1`, …).
+
+These two conventions are completely incompatible. Calling a hard-float function directly from soft-float Odin corrupts every floating-point argument.
+
+The fix is a set of wrapper functions in each `bridge.c` file, compiled by GCC with `-mfloat-abi=hard`, that:
+
+1. Accept float arguments as `uint32_t` (integer registers — both ABIs agree on those)
+2. Reinterpret the bit-pattern as `float` using `memcpy` (the `u2f()` helper in `bridge_utils.h`)
+3. Call the real library function with proper hard-float arguments
+
+```
+Odin (soft-float)      bridge.c (hard-float GCC)       libctru (hard-float)
+─────────────────      ─────────────────────────       ────────────────────
+f32 bits → r0      →   uint32_t x → u2f() → float  →   float in s0  ✓
+f32 bits → r1      →   uint32_t y → u2f() → float  →   float in s1  ✓
+u32      → r2      →   uint32_t clr (pass-through)  →   u32 in r2    ✓
+```
+
+Functions that only take integer or pointer arguments (the majority of libctru) can be called directly with a plain `foreign` declaration — no bridge needed.
+
+Static-inline C functions (e.g. `romfsInit`, `C2D_SceneBegin`, all sprite helpers) have no exported linker symbol, so they also require a bridge wrapper.
+
+### The `lib/` shared packages
+
+Rather than duplicating bindings in every example, all declarations live in `lib/`:
+
+| Package | Import path | Contains |
+|---|---|---|
+| `ctru` | `../../lib/ctru` | gfx, input, APT, console, romfs, irrst |
+| `c2d`  | `../../lib/c2d`  | All Citro2D types, drawing, tinting, view transforms |
+| `c3d`  | `../../lib/c3d`  | All Citro3D types, GPU enums, frame/texture/effect functions |
+
+Example usage:
+```odin
+import ctru "../../lib/ctru"
+import c2d  "../../lib/c2d"
+import c3d  "../../lib/c3d"
+
+top := c2d.C2D_CreateScreenTarget(ctru.GFX_TOP, ctru.GFX_LEFT)
+c2d.C2D_DrawRectSolid(10, 10, 0, 80, 60, c2d.C2D_Color32(0xFF, 0, 0, 0xFF))
+```
+
+Each example's `build.bat` compiles the three bridge objects (`ctru_bridge.o`, `c2d_bridge.o`, `c3d_bridge.o`) from the shared `lib/` directory and links them alongside the Odin assembly.
+
+---
+
+## Implementation Plan
+
+### ✅ Phase 1 — Shared library structure
+Migrated all bindings out of per-example files into a shared `lib/` directory.
+All three original examples (Shapes, Image, Input) updated and verified.
+
+### ✅ Phase 2 — Citro2D core bindings + individual examples
+Every tested function has its own self-contained example in `Examples/`.
+
+**Implemented and tested:**
+- `C2D_DrawLine`, `C2D_DrawRectSolid`, `C2D_DrawEllipseSolid`
+- `C2D_DrawImageAtRotated`
+- `C2D_ViewTranslate`, `C2D_ViewScale`, `C2D_ViewRotate`, `C2D_ViewShear`
+- `C2D_PlainImageTint`, `C2D_AlphaImageTint`, `C2D_SetImageTint`
+- `C2D_Color32f`, `C2D_Fade`, `C2D_SetTintMode`
+
+**Also implemented (tested via Shapes/Image examples):**
+- `C2D_DrawRectangle`, `C2D_DrawTriangle`, `C2D_DrawCircle`, `C2D_DrawEllipse`
+- `C2D_DrawImage`, `C2D_DrawImageAt`
+- `C2D_DrawSprite`, `C2D_DrawSpriteTinted`
+- `C2D_TopImageTint`, `C2D_BottomImageTint`, `C2D_LeftImageTint`, `C2D_RightImageTint`
+- `C2D_ViewReset`, `C2D_ViewSave`, `C2D_ViewRestore`, `C2D_ViewRotateDegrees`
+- `C2D_Color32`, `C2D_SceneSize`, `C2D_SceneTarget`
+
+---
+
+### 🔲 Phase 3 — Citro2D text rendering  ← **NEXT**
+
+Implement bindings in `lib/c2d/text.odin` and add bridge wrappers to `lib/c2d/bridge.c`.
+
+| Function | Bridge needed? | Notes |
+|---|---|---|
+| `C2D_TextBufNew` | No | |
+| `C2D_TextBufResize` | No | |
+| `C2D_TextBufDelete` | No | |
+| `C2D_TextBufClear` | No | |
+| `C2D_TextBufGetNumGlyphs` | No | |
+| `C2D_TextParseLine` | No | |
+| `C2D_TextFontParseLine` | No | |
+| `C2D_TextParse` | No | |
+| `C2D_TextFontParse` | No | |
+| `C2D_TextOptimize` | No | |
+| `C2D_TextGetDimensions` | **Yes** | float scaleX, scaleY, outW, outH |
+| `C2D_DrawText` | **Yes** | float x, y, z, scaleX, scaleY + C variadic |
+
+Example to create: `DrawText-Example`
+
+---
+
+### 🔲 Phase 4 — Citro2D font, sprite, spritesheet
+
+**Font** (`lib/c2d/font.odin`):
+
+| Function | Bridge needed? |
+|---|---|
+| `C2D_FontLoad`, `FontLoadFromMem`, `FontLoadFromFD`, `FontLoadFromHandle`, `FontLoadSystem` | No |
+| `C2D_FontFree`, `FontSetFilter` | No |
+| `C2D_FontGlyphIndexFromCodePoint`, `FontGetCharWidthInfo`, `FontGetInfo` | No |
+| `C2D_FontCalcGlyphPos` | **Yes** — float scaleX, scaleY |
+
+**SpriteSheet** (`lib/c2d/spritesheet.odin`):
+
+| Function | Bridge needed? |
+|---|---|
+| `C2D_SpriteSheetLoad`, `SpriteSheetLoadFromMem`, `SpriteSheetFromFD`, `SpriteSheetLoadFromHandle` | No |
+| `C2D_SpriteSheetFree`, `SpriteSheetCount`, `SpriteSheetGetImage` | No |
+
+**Sprite helpers** (`lib/c2d/sprite.odin`) — all are `static inline` so all need bridge wrappers:
+
+| Function | Notes |
+|---|---|
+| `C2D_SpriteFromImage` | struct-by-value arg |
+| `C2D_SpriteFromSheet` | |
+| `C2D_SpriteSetPos`, `SpriteSetScale`, `SpriteSetCenter`, `SpriteSetCenterRaw` | float x, y |
+| `C2D_SpriteSetRotation`, `SpriteSetRotationDegrees` | float angle |
+| `C2D_SpriteSetDepth` | float depth |
+| `C2D_SpriteMove`, `SpriteScale`, `SpriteRotate`, `SpriteRotateDegrees` | |
+
+Examples to create: `SpriteSheet-Example`, `CustomFont-Example`
+
+---
+
+### 🔲 Phase 5 — Citro3D core examples
+
+The Citro3D bindings are already **declared** in `lib/c3d/base.odin` and `lib/c3d/bridge.c`.
+This phase validates them with working 3D examples:
+
+- Render triangle to screen (vertex buffers, shaders, attribute setup)
+- Texture mapping (C3D_Tex, TexEnv)
+- Depth testing and alpha blending
+
+---
+
+### 🔲 Phase 6 — Citro3D texture management
+
+- `C3D_TexInit`, `C3D_TexInitWithParams`
+- `C3D_TexLoadImage`, `C3D_TexGenerateMipmap`
+- `C3D_TexBind`, `C3D_TexFlush`, `C3D_TexDelete`
+- `C3D_TexSetLodBias`, `C3D_TexShadowParams`
+
+---
+
+### 🔲 Phase 7 — Citro3D effects, TexEnv, framebuffer
+
+- TexEnv setup (`C3D_TexEnv*`)
+- Stencil, depth test, alpha blend, cull face
+- Framebuffer transfer and custom render targets
+
+---
+
+### 🔲 Phase 8 — Citro3D math (native Odin)
+
+All `maths.h` functions are `static inline` in C, so they cannot be linked — they must be reimplemented natively in `lib/c3d/math.odin`.
+
+- `FVec3_*`, `FVec4_*` (add, subtract, dot, cross, normalize, …)
+- `Mtx_*` (identity, multiply, translate, scale, rotate, ortho, perspective, …)
+- `Quat_*` (from axis-angle, multiply, normalize, to matrix, …)
+
+---
+
+### 🔲 Phase 9 — Citro3D lighting, fog, proctex
+
+- `C3D_LightEnv*`, `C3D_Light*`
+- `FogLut_Exp`, `C3D_FogGasMode`
+- `C3D_ProcTex*`, `ProcTexLut_*`
+
+---
+
+### 🔲 Phase 10 — Full 3D example
+
+A complete 3D scene using only the `lib/` packages:
+- Spinning textured cube or model
+- Lighting applied
+- Perspective projection via Phase 8 math
+
+---
+
+## Tools
+
+### `tools/png2t3x.exe`
+
+Converts a PNG image to the `.t3x` texture format used by Citro3D. The official `tex3ds` tool from DevKitPro has a bug on Windows that produces corrupt output; this tool is a working replacement.
+
+Usage: `png2t3x.exe input.png output.t3x`
+
+The image-based examples' `build.bat` files invoke this automatically.
+
+---
+
+## Foreign Imports note
+
+You will notice foreign imports for things that already exist in standard Odin (e.g. `printf`).
+Because we compile with `-no-entry-point` and `-no-thread-local` for the freestanding target, the standard Odin runtime is not available. Every OS-level or C-runtime function must be explicitly imported from libctru.

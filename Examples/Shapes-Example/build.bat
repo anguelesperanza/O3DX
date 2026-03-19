@@ -1,4 +1,3 @@
-
 @echo off
 setlocal enabledelayedexpansion
 :: -------------------------------
@@ -19,6 +18,8 @@ set GFX=gfx
 set ROMFS=romfs
 set GFXOUT=%ROMFS%\gfx
 set ODINASM=odin_asm
+:: Shared library root (relative to this example)
+set LIB=..\..\lib
 :: -------------------------------
 :: Clean previous build
 :: -------------------------------
@@ -62,7 +63,24 @@ arm-none-eabi-gcc -c main.c -o "%BUILD%\main.o" ^
     -I"%DEVKITPRO%\libctru\include" -I"%INCLUDES%" -D__3DS__
 if errorlevel 1 goto :fail
 :: -------------------------------
-:: Compile all C/C++/ASM files
+:: Compile shared library bridges
+:: -------------------------------
+echo.
+echo Compiling lib bridges...
+arm-none-eabi-gcc -c "%LIB%\ctru\bridge.c" -o "%BUILD%\ctru_bridge.o" ^
+    -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft ^
+    -I"%DEVKITPRO%\libctru\include" -D__3DS__
+if errorlevel 1 goto :fail
+arm-none-eabi-gcc -c "%LIB%\c2d\bridge.c" -o "%BUILD%\c2d_bridge.o" ^
+    -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft ^
+    -I"%DEVKITPRO%\libctru\include" -D__3DS__
+if errorlevel 1 goto :fail
+arm-none-eabi-gcc -c "%LIB%\c3d\bridge.c" -o "%BUILD%\c3d_bridge.o" ^
+    -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft ^
+    -I"%DEVKITPRO%\libctru\include" -D__3DS__
+if errorlevel 1 goto :fail
+:: -------------------------------
+:: Compile all C/C++/ASM source files
 :: -------------------------------
 echo.
 echo Compiling sources...

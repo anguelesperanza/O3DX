@@ -487,13 +487,13 @@ __extendhfsf2:
 	.asciz	"\033[4;1HCmdBuf:  %6.2f%%\033[K"
 	.size	".Lcsbs$Shapes-Example$5", 26
 
-	.type	"runtime::default_random_generator_proc-.state-3198",%object
+	.type	"runtime::default_random_generator_proc-.state-4301",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-3198"
+	.globl	"runtime::default_random_generator_proc-.state-4301"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-3198":
+"runtime::default_random_generator_proc-.state-4301":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-3198", 1032
+	.size	"runtime::default_random_generator_proc-.state-4301", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

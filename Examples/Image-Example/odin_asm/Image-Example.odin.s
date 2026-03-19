@@ -284,25 +284,25 @@ odin_main:
 	mov	pc, lr
 	.p2align	2
 .LCPI0_0:
-	.long	".Lcsbs$Image-Example$2"
-.LCPI0_1:
-	.long	".Lcsbs$Image-Example$3"
-.LCPI0_2:
-	.long	".Lcsbs$Image-Example$4"
-.LCPI0_3:
 	.long	".Lcsbs$Image-Example$5"
-.LCPI0_4:
+.LCPI0_1:
 	.long	".Lcsbs$Image-Example$6"
-.LCPI0_5:
+.LCPI0_2:
 	.long	".Lcsbs$Image-Example$7"
-.LCPI0_6:
+.LCPI0_3:
 	.long	".Lcsbs$Image-Example$8"
-.LCPI0_7:
+.LCPI0_4:
 	.long	".Lcsbs$Image-Example$9"
-.LCPI0_8:
+.LCPI0_5:
 	.long	".Lcsbs$Image-Example$a"
-.LCPI0_9:
+.LCPI0_6:
 	.long	".Lcsbs$Image-Example$b"
+.LCPI0_7:
+	.long	".Lcsbs$Image-Example$c"
+.LCPI0_8:
+	.long	".Lcsbs$Image-Example$d"
+.LCPI0_9:
+	.long	".Lcsbs$Image-Example$e"
 .Lfunc_end0:
 	.size	odin_main, .Lfunc_end0-odin_main
 	.fnend
@@ -568,64 +568,64 @@ __extendhfsf2:
 	.cantunwind
 	.fnend
 
-	.type	".Lcsbs$Image-Example$2",%object
-	.section	.rodata,"a",%progbits
-".Lcsbs$Image-Example$2":
-	.asciz	"romfs:/image_8x8.t3x"
-	.size	".Lcsbs$Image-Example$2", 21
-
-	.type	".Lcsbs$Image-Example$3",%object
-".Lcsbs$Image-Example$3":
-	.asciz	"romfs:/image_16x16.t3x"
-	.size	".Lcsbs$Image-Example$3", 23
-
-	.type	".Lcsbs$Image-Example$4",%object
-".Lcsbs$Image-Example$4":
-	.asciz	"romfs:/image_32x32.t3x"
-	.size	".Lcsbs$Image-Example$4", 23
-
 	.type	".Lcsbs$Image-Example$5",%object
+	.section	.rodata,"a",%progbits
 ".Lcsbs$Image-Example$5":
-	.asciz	"romfs:/image_64x64.t3x"
-	.size	".Lcsbs$Image-Example$5", 23
+	.asciz	"romfs:/image_8x8.t3x"
+	.size	".Lcsbs$Image-Example$5", 21
 
 	.type	".Lcsbs$Image-Example$6",%object
 ".Lcsbs$Image-Example$6":
-	.asciz	"romfs:/image_128x128.t3x"
-	.size	".Lcsbs$Image-Example$6", 25
+	.asciz	"romfs:/image_16x16.t3x"
+	.size	".Lcsbs$Image-Example$6", 23
 
 	.type	".Lcsbs$Image-Example$7",%object
 ".Lcsbs$Image-Example$7":
-	.asciz	"romfs:/image_256x256.t3x"
-	.size	".Lcsbs$Image-Example$7", 25
+	.asciz	"romfs:/image_32x32.t3x"
+	.size	".Lcsbs$Image-Example$7", 23
 
 	.type	".Lcsbs$Image-Example$8",%object
 ".Lcsbs$Image-Example$8":
-	.asciz	"romfs:/image_512x512.t3x"
-	.size	".Lcsbs$Image-Example$8", 25
+	.asciz	"romfs:/image_64x64.t3x"
+	.size	".Lcsbs$Image-Example$8", 23
 
 	.type	".Lcsbs$Image-Example$9",%object
 ".Lcsbs$Image-Example$9":
-	.asciz	"romfs:/image_1024x1024.t3x"
-	.size	".Lcsbs$Image-Example$9", 27
+	.asciz	"romfs:/image_128x128.t3x"
+	.size	".Lcsbs$Image-Example$9", 25
 
 	.type	".Lcsbs$Image-Example$a",%object
 ".Lcsbs$Image-Example$a":
-	.asciz	"\033[1;1HImage example"
-	.size	".Lcsbs$Image-Example$a", 20
+	.asciz	"romfs:/image_256x256.t3x"
+	.size	".Lcsbs$Image-Example$a", 25
 
 	.type	".Lcsbs$Image-Example$b",%object
 ".Lcsbs$Image-Example$b":
-	.asciz	"\033[2;1HPress START to exit"
-	.size	".Lcsbs$Image-Example$b", 26
+	.asciz	"romfs:/image_512x512.t3x"
+	.size	".Lcsbs$Image-Example$b", 25
 
-	.type	"runtime::default_random_generator_proc-.state-3240",%object
+	.type	".Lcsbs$Image-Example$c",%object
+".Lcsbs$Image-Example$c":
+	.asciz	"romfs:/image_1024x1024.t3x"
+	.size	".Lcsbs$Image-Example$c", 27
+
+	.type	".Lcsbs$Image-Example$d",%object
+".Lcsbs$Image-Example$d":
+	.asciz	"\033[1;1HImage example"
+	.size	".Lcsbs$Image-Example$d", 20
+
+	.type	".Lcsbs$Image-Example$e",%object
+".Lcsbs$Image-Example$e":
+	.asciz	"\033[2;1HPress START to exit"
+	.size	".Lcsbs$Image-Example$e", 26
+
+	.type	"runtime::default_random_generator_proc-.state-4250",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-3240"
+	.globl	"runtime::default_random_generator_proc-.state-4250"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-3240":
+"runtime::default_random_generator_proc-.state-4250":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-3240", 1032
+	.size	"runtime::default_random_generator_proc-.state-4250", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1
