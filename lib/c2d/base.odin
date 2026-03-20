@@ -39,10 +39,6 @@ foreign citro2d {
     // is safe for soft-float Odin (struct layout is identical).
     C2D_DrawImage          :: proc(img: C2D_Image, params: ^C2D_DrawParams, tint: ^C2D_ImageTint) -> bool ---
 
-    // --- Sprite draw (no float params in the call itself) ---
-    C2D_DrawSprite         :: proc(sprite: ^C2D_Sprite) -> bool ---
-    C2D_DrawSpriteTinted   :: proc(sprite: ^C2D_Sprite, tint: ^C2D_ImageTint) -> bool ---
-
     // --- View transform (no float params) ---
     // NOTE: 'matrix' is a reserved keyword in Odin; parameter renamed to 'mtx'.
     C2D_ViewReset   :: proc() ---

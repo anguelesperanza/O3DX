@@ -277,41 +277,84 @@ void c2d_draw_text_color_wrap(
 }
 
 // ----------------------------------------------------------------
-// TODO (Phase 4): Font wrapper
-//
-// void c2d_font_calc_glyph_pos(
-//     C2D_Font font, fontGlyphPos_s* out, int glyphIndex,
-//     uint32_t flags, uint32_t scaleX, uint32_t scaleY)
-// {
-//     C2D_FontCalcGlyphPos(font, out, glyphIndex, flags, u2f(scaleX), u2f(scaleY));
-// }
-//
-// TODO (Phase 4): Sprite wrappers
-//
-// void c2d_sprite_from_image(C2D_Sprite* sprite, C2D_Image image)
-//     { C2D_SpriteFromImage(sprite, image); }
-// void c2d_sprite_from_sheet(C2D_Sprite* sprite, C2D_SpriteSheet sheet, size_t index)
-//     { C2D_SpriteFromSheet(sprite, sheet, index); }
-// void c2d_sprite_set_pos(C2D_Sprite* sprite, uint32_t x, uint32_t y)
-//     { C2D_SpriteSetPos(sprite, u2f(x), u2f(y)); }
-// void c2d_sprite_set_scale(C2D_Sprite* sprite, uint32_t x, uint32_t y)
-//     { C2D_SpriteSetScale(sprite, u2f(x), u2f(y)); }
-// void c2d_sprite_set_rotation(C2D_Sprite* sprite, uint32_t radians)
-//     { C2D_SpriteSetRotation(sprite, u2f(radians)); }
-// void c2d_sprite_set_rotation_degrees(C2D_Sprite* sprite, uint32_t degrees)
-//     { C2D_SpriteSetRotationDegrees(sprite, u2f(degrees)); }
-// void c2d_sprite_set_center(C2D_Sprite* sprite, uint32_t x, uint32_t y)
-//     { C2D_SpriteSetCenter(sprite, u2f(x), u2f(y)); }
-// void c2d_sprite_set_center_raw(C2D_Sprite* sprite, uint32_t x, uint32_t y)
-//     { C2D_SpriteSetCenterRaw(sprite, u2f(x), u2f(y)); }
-// void c2d_sprite_set_depth(C2D_Sprite* sprite, uint32_t depth)
-//     { C2D_SpriteSetDepth(sprite, u2f(depth)); }
-// void c2d_sprite_move(C2D_Sprite* sprite, uint32_t x, uint32_t y)
-//     { C2D_SpriteMove(sprite, u2f(x), u2f(y)); }
-// void c2d_sprite_scale(C2D_Sprite* sprite, uint32_t x, uint32_t y)
-//     { C2D_SpriteScale(sprite, u2f(x), u2f(y)); }
-// void c2d_sprite_rotate(C2D_Sprite* sprite, uint32_t radians)
-//     { C2D_SpriteRotate(sprite, u2f(radians)); }
-// void c2d_sprite_rotate_degrees(C2D_Sprite* sprite, uint32_t degrees)
-//     { C2D_SpriteRotateDegrees(sprite, u2f(degrees)); }
+// Font (Phase 4)
+// C2D_FontCalcGlyphPos takes float scaleX, scaleY.
+// fontGlyphPos_s is defined in <3ds/font.h>, included via <citro2d.h>.
 // ----------------------------------------------------------------
+
+void c2d_font_calc_glyph_pos(
+    C2D_Font font, fontGlyphPos_s* out, int glyphIndex,
+    uint32_t flags, uint32_t scaleX, uint32_t scaleY)
+{
+    C2D_FontCalcGlyphPos(font, out, glyphIndex, flags, u2f(scaleX), u2f(scaleY));
+}
+
+// ----------------------------------------------------------------
+// SpriteSheet (Phase 4)
+// C2D_SpriteSheetCount and C2D_SpriteSheetGetImage are static inline
+// in spritesheet.h — they need bridge wrappers even though neither
+// takes float parameters.
+// C2D_SpriteSheetGetImage returns C2D_Image by value; we use an out-
+// pointer to avoid any struct-return ABI ambiguity across toolchains.
+// ----------------------------------------------------------------
+
+size_t c2d_sprite_sheet_count(C2D_SpriteSheet sheet) {
+    return C2D_SpriteSheetCount(sheet);
+}
+
+void c2d_sprite_sheet_get_image(C2D_SpriteSheet sheet, size_t index, C2D_Image* out) {
+    *out = C2D_SpriteSheetGetImage(sheet, index);
+}
+
+// ----------------------------------------------------------------
+// Sprite helpers (Phase 4)
+// Every C2D_Sprite* function is static inline in sprite.h, so all
+// require bridge wrappers.  Float params are received as uint32_t
+// and reinterpreted with u2f() before forwarding.
+// ----------------------------------------------------------------
+
+// Draw helpers — static inline in base.h, forward to C2D_DrawImage.
+bool c2d_draw_sprite(const C2D_Sprite* sprite)
+    { return C2D_DrawSprite(sprite); }
+
+bool c2d_draw_sprite_tinted(const C2D_Sprite* sprite, const C2D_ImageTint* tint)
+    { return C2D_DrawSpriteTinted(sprite, tint); }
+
+void c2d_sprite_from_image(C2D_Sprite* sprite, C2D_Image image)
+    { C2D_SpriteFromImage(sprite, image); }
+
+void c2d_sprite_from_sheet(C2D_Sprite* sprite, C2D_SpriteSheet sheet, size_t index)
+    { C2D_SpriteFromSheet(sprite, sheet, index); }
+
+void c2d_sprite_set_pos(C2D_Sprite* sprite, uint32_t x, uint32_t y)
+    { C2D_SpriteSetPos(sprite, u2f(x), u2f(y)); }
+
+void c2d_sprite_set_scale(C2D_Sprite* sprite, uint32_t x, uint32_t y)
+    { C2D_SpriteSetScale(sprite, u2f(x), u2f(y)); }
+
+void c2d_sprite_set_rotation(C2D_Sprite* sprite, uint32_t radians)
+    { C2D_SpriteSetRotation(sprite, u2f(radians)); }
+
+void c2d_sprite_set_rotation_degrees(C2D_Sprite* sprite, uint32_t degrees)
+    { C2D_SpriteSetRotationDegrees(sprite, u2f(degrees)); }
+
+void c2d_sprite_set_center(C2D_Sprite* sprite, uint32_t x, uint32_t y)
+    { C2D_SpriteSetCenter(sprite, u2f(x), u2f(y)); }
+
+void c2d_sprite_set_center_raw(C2D_Sprite* sprite, uint32_t x, uint32_t y)
+    { C2D_SpriteSetCenterRaw(sprite, u2f(x), u2f(y)); }
+
+void c2d_sprite_set_depth(C2D_Sprite* sprite, uint32_t depth)
+    { C2D_SpriteSetDepth(sprite, u2f(depth)); }
+
+void c2d_sprite_move(C2D_Sprite* sprite, uint32_t x, uint32_t y)
+    { C2D_SpriteMove(sprite, u2f(x), u2f(y)); }
+
+void c2d_sprite_scale(C2D_Sprite* sprite, uint32_t x, uint32_t y)
+    { C2D_SpriteScale(sprite, u2f(x), u2f(y)); }
+
+void c2d_sprite_rotate(C2D_Sprite* sprite, uint32_t radians)
+    { C2D_SpriteRotate(sprite, u2f(radians)); }
+
+void c2d_sprite_rotate_degrees(C2D_Sprite* sprite, uint32_t degrees)
+    { C2D_SpriteRotateDegrees(sprite, u2f(degrees)); }

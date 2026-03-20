@@ -12,42 +12,24 @@ int main(int argc, char* argv[]) {
     return odin_main(argc, argv);
 }
 
+// ----------------------------------------------------------------
+// load_t3x_image
+// Parses a Tex3DS .t3x file using Tex3DS_TextureImportStdio,
+// uploads the texture to GPU memory, and fills out the first
+// sub-texture entry.  Returns true on success.
+// Call C3D_TexDelete(tex) when done.
+// ----------------------------------------------------------------
 bool load_t3x_image(const char* path, C3D_Tex* tex, Tex3DS_SubTexture* subtex) {
     FILE* f = fopen(path, "rb");
     if (!f) return false;
-
-    fseek(f, 16, SEEK_SET);
-
-    uint32_t width, height, fmt, data_size;
-    if (fread(&width,     4, 1, f) != 1 ||
-        fread(&height,    4, 1, f) != 1 ||
-        fread(&fmt,       4, 1, f) != 1 ||
-        fread(&data_size, 4, 1, f) != 1) {
-        fclose(f);
-        return false;
-    }
-
-    if (!C3D_TexInit(tex, (u16)width, (u16)height, GPU_RGBA8)) {
-        fclose(f);
-        return false;
-    }
-
-    size_t read = fread(tex->data, 1, data_size, f);
+    Tex3DS_Texture t3x = Tex3DS_TextureImportStdio(f, tex, NULL, false);
     fclose(f);
-
-    if (read != data_size) {
-        C3D_TexDelete(tex);
+    if (!t3x) return false;
+    if (Tex3DS_GetNumSubTextures(t3x) == 0) {
+        Tex3DS_TextureFree(t3x);
         return false;
     }
-
-    GSPGPU_FlushDataCache(tex->data, tex->size);
-
-    subtex->width  = (u16)width;
-    subtex->height = (u16)height;
-    subtex->left   = 0.0f;
-    subtex->top    = 1.0f;
-    subtex->right  = (float)width  / (float)tex->width;
-    subtex->bottom = 0.0f;
-
+    *subtex = *Tex3DS_GetSubTexture(t3x, 0);
+    Tex3DS_TextureFree(t3x);
     return true;
 }

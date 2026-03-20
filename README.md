@@ -39,10 +39,10 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── c2d/
 │   │   ├── types.odin          ← Citro2D types (C2D_Image, C2D_ImageTint, C2D_Sprite, …)
 │   │   ├── base.odin           ← Core drawing, tinting, view transforms ✅
-│   │   ├── text.odin           ← Text rendering ✅ (Phase 3)
-│   │   ├── font.odin           ← Font loading stubs 🔲 (Phase 4)
-│   │   ├── sprite.odin         ← Sprite helper stubs 🔲 (Phase 4)
-│   │   ├── spritesheet.odin    ← SpriteSheet stubs 🔲 (Phase 4)
+│   │   │   ├── text.odin           ← Text rendering ✅ (Phase 3)
+│   │   ├── font.odin           ← Font loading ✅ (Phase 4)
+│   │   ├── sprite.odin         ← Sprite helpers ✅ (Phase 4)
+│   │   ├── spritesheet.odin    ← SpriteSheet loading ✅ (Phase 4)
 │   │   └── bridge.c            ← ABI bridge for all float-param Citro2D functions
 │   └── c3d/
 │       ├── types.odin          ← Citro3D types + all GPU_* enums ✅
@@ -73,10 +73,13 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── DrawTextColor-Example/  ← C2D_DrawTextColor ✅
 │   ├── DrawTextAlign-Example/  ← C2D_AlignLeft/Center/Right ✅
 │   ├── DrawTextWrap-Example/   ← C2D_DrawTextColorWrap ✅
-│   └── DrawTextDynamic-Example/ ← TextBufClear + snprintf counter ✅
+│   ├── DrawTextDynamic-Example/ ← TextBufClear + snprintf counter ✅
+│   ├── SpriteSheet-Example/    ← Full sprite-sheet pipeline: C2D_SpriteSheetLoad → C2D_SpriteFromSheet + all sprite helpers ✅
+│   └── CustomFont-Example/     ← C2D_FontLoadSystem + C2D_TextFontParse ✅
 │
 └── tools/
-    └── png2t3x.exe             ← PNG → .t3x converter (workaround for a Windows bug in the DevKitPro tool)
+    ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
+    └── png2t3x.odin            ← Source for the converter
 ```
 
 ---
@@ -212,40 +215,48 @@ Examples created: `DrawText-Example`, `DrawTextColor-Example`, `DrawTextAlign-Ex
 
 ---
 
-### 🔲 Phase 4 — Citro2D font, sprite, spritesheet  ← **NEXT**
+### ✅ Phase 4 — Citro2D font, sprite, spritesheet
 
 **Font** (`lib/c2d/font.odin`):
 
-| Function | Bridge needed? |
-|---|---|
-| `C2D_FontLoad`, `FontLoadFromMem`, `FontLoadFromFD`, `FontLoadFromHandle`, `FontLoadSystem` | No |
-| `C2D_FontFree`, `FontSetFilter` | No |
-| `C2D_FontGlyphIndexFromCodePoint`, `FontGetCharWidthInfo`, `FontGetInfo` | No |
-| `C2D_FontCalcGlyphPos` | **Yes** — float scaleX, scaleY |
+| Function | Bridge needed? | Notes |
+|---|---|---|
+| `C2D_FontLoad`, `FontLoadFromMem`, `FontLoadFromFD`, `FontLoadFromHandle`, `FontLoadSystem` | No | |
+| `C2D_FontFree`, `FontSetFilter` | No | |
+| `C2D_FontGlyphIndexFromCodePoint`, `FontGetCharWidthInfo`, `FontGetInfo` | No | |
+| `C2D_FontCalcGlyphPos` | **Yes** | float scaleX, scaleY |
 
 **SpriteSheet** (`lib/c2d/spritesheet.odin`):
 
-| Function | Bridge needed? |
-|---|---|
-| `C2D_SpriteSheetLoad`, `SpriteSheetLoadFromMem`, `SpriteSheetFromFD`, `SpriteSheetLoadFromHandle` | No |
-| `C2D_SpriteSheetFree`, `SpriteSheetCount`, `SpriteSheetGetImage` | No |
+| Function | Bridge needed? | Notes |
+|---|---|---|
+| `C2D_SpriteSheetLoad`, `SpriteSheetLoadFromMem`, `SpriteSheetFromFD`, `SpriteSheetLoadFromHandle`, `SpriteSheetFree` | No | exported symbols |
+| `C2D_SpriteSheetCount` | **Yes** | static inline |
+| `C2D_SpriteSheetGetImage` | **Yes** | static inline; returns via out-pointer to avoid struct-return ABI ambiguity |
 
-**Sprite helpers** (`lib/c2d/sprite.odin`) — all are `static inline` so all need bridge wrappers:
+**Sprite helpers** (`lib/c2d/sprite.odin`) — all `static inline`, all need bridge wrappers:
 
 | Function | Notes |
 |---|---|
-| `C2D_SpriteFromImage` | struct-by-value arg |
-| `C2D_SpriteFromSheet` | |
+| `C2D_SpriteFromImage` | passes C2D_Image struct by value through bridge |
+| `C2D_SpriteFromSheet` | bridge calls static inline SpriteFromImage internally |
 | `C2D_SpriteSetPos`, `SpriteSetScale`, `SpriteSetCenter`, `SpriteSetCenterRaw` | float x, y |
 | `C2D_SpriteSetRotation`, `SpriteSetRotationDegrees` | float angle |
 | `C2D_SpriteSetDepth` | float depth |
-| `C2D_SpriteMove`, `SpriteScale`, `SpriteRotate`, `SpriteRotateDegrees` | |
+| `C2D_SpriteMove`, `SpriteScale`, `SpriteRotate`, `SpriteRotateDegrees` | delta variants |
 
-Examples to create: `SpriteSheet-Example`, `CustomFont-Example`
+Examples created: `SpriteSheet-Example`, `CustomFont-Example`
+
+> **Note on `.t3x` files:** `C2D_SpriteSheetLoad` calls `Tex3DS_TextureImportStdio` internally and
+> requires a `.t3x` file in the standard Tex3DS binary format. The DevKitPro `tex3ds` tool has a
+> known bug on Windows that produces corrupt output. `tools/png2t3x.exe` is a working replacement
+> that writes the correct format. All image-loading examples use `Tex3DS_TextureImportStdio` in
+> their `main.c` for parsing, and `SpriteSheet-Example` uses the full `C2D_SpriteSheetLoad` →
+> `C2D_SpriteFromSheet` pipeline end-to-end.
 
 ---
 
-### 🔲 Phase 5 — Citro3D core examples
+### 🔲 Phase 5 — Citro3D core examples  ← **NEXT**
 
 The Citro3D bindings are already **declared** in `lib/c3d/base.odin` and `lib/c3d/bridge.c`.
 This phase validates them with working 3D examples:
@@ -304,11 +315,19 @@ A complete 3D scene using only the `lib/` packages:
 
 ### `tools/png2t3x.exe`
 
-Converts a PNG image to the `.t3x` texture format used by Citro3D. The official `tex3ds` tool from DevKitPro has a bug on Windows that produces corrupt output; this tool is a working replacement.
+Converts a PNG or JPEG to a `.t3x` file in the **standard Tex3DS binary format** compatible with `Tex3DS_TextureImportStdio` and `C2D_SpriteSheetLoad`.
+
+The official `tex3ds` tool from DevKitPro has a known bug on Windows that produces corrupt output; this tool is a working replacement. It is built from `tools/png2t3x.odin` using the Odin compiler.
+
+**What it produces:**
+- No magic bytes — file starts directly with a `u16 numSubTextures` field
+- Dimensions rounded up to the nearest power-of-two ≥ 8 and zero-padded
+- Pixels converted to ABGR8 byte order (3DS GPU in-memory layout), Morton (Z-curve) swizzled in 8×8 tiles, Y-flipped
+- A 4-byte BIOS compression header with type `0x00` (no compression) wrapping the pixel data
 
 Usage: `png2t3x.exe input.png output.t3x`
 
-The image-based examples' `build.bat` files invoke this automatically.
+All image-based examples' `build.bat` files invoke this automatically before the build step. All `load_t3x_image` helpers in the example `main.c` files parse the output with `Tex3DS_TextureImportStdio`.
 
 ---
 
