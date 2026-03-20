@@ -39,7 +39,7 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── c2d/
 │   │   ├── types.odin          ← Citro2D types (C2D_Image, C2D_ImageTint, C2D_Sprite, …)
 │   │   ├── base.odin           ← Core drawing, tinting, view transforms ✅
-│   │   ├── text.odin           ← Text rendering stubs 🔲 (Phase 3)
+│   │   ├── text.odin           ← Text rendering ✅ (Phase 3)
 │   │   ├── font.odin           ← Font loading stubs 🔲 (Phase 4)
 │   │   ├── sprite.odin         ← Sprite helper stubs 🔲 (Phase 4)
 │   │   ├── spritesheet.odin    ← SpriteSheet stubs 🔲 (Phase 4)
@@ -68,7 +68,12 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── SetImageTint-Example/   ← C2D_SetImageTint ✅
 │   ├── Color32f-Example/       ← C2D_Color32f ✅
 │   ├── Fade-Example/           ← C2D_Fade ✅
-│   └── SetTintMode-Example/    ← C2D_SetTintMode ✅
+│   ├── SetTintMode-Example/    ← C2D_SetTintMode ✅
+│   ├── DrawText-Example/       ← C2D_DrawText (3 scales) ✅
+│   ├── DrawTextColor-Example/  ← C2D_DrawTextColor ✅
+│   ├── DrawTextAlign-Example/  ← C2D_AlignLeft/Center/Right ✅
+│   ├── DrawTextWrap-Example/   ← C2D_DrawTextColorWrap ✅
+│   └── DrawTextDynamic-Example/ ← TextBufClear + snprintf counter ✅
 │
 └── tools/
     └── png2t3x.exe             ← PNG → .t3x converter (workaround for a Windows bug in the DevKitPro tool)
@@ -175,9 +180,14 @@ Every tested function has its own self-contained example in `Examples/`.
 
 ---
 
-### 🔲 Phase 3 — Citro2D text rendering  ← **NEXT**
+### ✅ Phase 3 — Citro2D text rendering
 
-Implement bindings in `lib/c2d/text.odin` and add bridge wrappers to `lib/c2d/bridge.c`.
+Bindings in `lib/c2d/text.odin`, bridge wrappers in `lib/c2d/bridge.c`.
+
+**Key implementation note:** `C2D_DrawText` is a C variadic function. The bridge provides four
+concrete wrappers covering every call signature (plain, +colour, +wrap, +colour+wrap) so Odin
+never has to touch the variadic ABI directly. `wrapWidth` is promoted to `double` inside the
+bridge because that is how `va_arg` reads it on ARM32.
 
 | Function | Bridge needed? | Notes |
 |---|---|---|
@@ -192,13 +202,17 @@ Implement bindings in `lib/c2d/text.odin` and add bridge wrappers to `lib/c2d/br
 | `C2D_TextFontParse` | No | |
 | `C2D_TextOptimize` | No | |
 | `C2D_TextGetDimensions` | **Yes** | float scaleX, scaleY, outW, outH |
-| `C2D_DrawText` | **Yes** | float x, y, z, scaleX, scaleY + C variadic |
+| `C2D_DrawText` | **Yes** | `c2d_draw_text` — no varargs |
+| `C2D_DrawText` + colour | **Yes** | `c2d_draw_text_color` |
+| `C2D_DrawText` + wrap | **Yes** | `c2d_draw_text_wrap` |
+| `C2D_DrawText` + colour + wrap | **Yes** | `c2d_draw_text_color_wrap` |
 
-Example to create: `DrawText-Example`
+Examples created: `DrawText-Example`, `DrawTextColor-Example`, `DrawTextAlign-Example`,
+`DrawTextWrap-Example`, `DrawTextDynamic-Example`
 
 ---
 
-### 🔲 Phase 4 — Citro2D font, sprite, spritesheet
+### 🔲 Phase 4 — Citro2D font, sprite, spritesheet  ← **NEXT**
 
 **Font** (`lib/c2d/font.odin`):
 

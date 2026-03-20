@@ -198,24 +198,85 @@ void c2d_right_image_tint(C2D_ImageTint* tint, uint32_t color, uint32_t blend) {
 }
 
 // ----------------------------------------------------------------
-// TODO (Phase 3): Text wrappers
+// Text rendering (Phase 3)
 //
-// void c2d_text_get_dimensions(
-//     const C2D_Text* text,
-//     uint32_t scaleX, uint32_t scaleY,
-//     float* outWidth, float* outHeight)
-// {
-//     C2D_TextGetDimensions(text, u2f(scaleX), u2f(scaleY), outWidth, outHeight);
-// }
+// C2D_DrawText is a variadic C function.  On ARM32, the AAPCS-VFP
+// spec requires that variadic functions are called using the base
+// AAPCS — ALL arguments (including the named floats before '...')
+// are passed through GP registers.  Odin soft-float also puts f32
+// bit-patterns in GP registers, so they naturally match.
 //
-// void c2d_draw_text(
-//     const C2D_Text* text, uint32_t flags,
-//     uint32_t x, uint32_t y, uint32_t z,
-//     uint32_t scaleX, uint32_t scaleY)
-// {
-//     C2D_DrawText(text, flags, u2f(x), u2f(y), u2f(z), u2f(scaleX), u2f(scaleY));
-// }
-//
+// We still use bridge wrappers here for two reasons:
+//   1. We need distinct entry points for each call form (no extra
+//      varargs / with-color / with-wrap / with-both).
+//   2. The wrapWidth vararg is a float that citro2d reads back with
+//      va_arg(ap, double), so we must promote it to double when
+//      forwarding from the bridge.
+// ----------------------------------------------------------------
+
+void c2d_text_get_dimensions(
+    const C2D_Text* text,
+    uint32_t scaleX, uint32_t scaleY,
+    float* outWidth, float* outHeight)
+{
+    C2D_TextGetDimensions(text, u2f(scaleX), u2f(scaleY), outWidth, outHeight);
+}
+
+// Basic draw — no optional varargs.
+void c2d_draw_text(
+    const C2D_Text* text, uint32_t flags,
+    uint32_t x, uint32_t y, uint32_t z,
+    uint32_t scaleX, uint32_t scaleY)
+{
+    C2D_DrawText(text, flags,
+        u2f(x), u2f(y), u2f(z),
+        u2f(scaleX), u2f(scaleY));
+}
+
+// Draw with explicit colour (C2D_WithColor flag).
+// color is u32 — already an integer, no conversion needed.
+void c2d_draw_text_color(
+    const C2D_Text* text, uint32_t flags,
+    uint32_t x, uint32_t y, uint32_t z,
+    uint32_t scaleX, uint32_t scaleY,
+    uint32_t color)
+{
+    C2D_DrawText(text, flags,
+        u2f(x), u2f(y), u2f(z),
+        u2f(scaleX), u2f(scaleY),
+        color);
+}
+
+// Draw with word-wrap (C2D_WordWrap flag).
+// citro2d reads wrapWidth with va_arg(ap, double), so promote here.
+void c2d_draw_text_wrap(
+    const C2D_Text* text, uint32_t flags,
+    uint32_t x, uint32_t y, uint32_t z,
+    uint32_t scaleX, uint32_t scaleY,
+    uint32_t wrapWidth)
+{
+    C2D_DrawText(text, flags,
+        u2f(x), u2f(y), u2f(z),
+        u2f(scaleX), u2f(scaleY),
+        (double)u2f(wrapWidth));
+}
+
+// Draw with both colour and word-wrap (C2D_WithColor | C2D_WordWrap).
+// citro2d reads color first, then wrapWidth.
+void c2d_draw_text_color_wrap(
+    const C2D_Text* text, uint32_t flags,
+    uint32_t x, uint32_t y, uint32_t z,
+    uint32_t scaleX, uint32_t scaleY,
+    uint32_t color, uint32_t wrapWidth)
+{
+    C2D_DrawText(text, flags,
+        u2f(x), u2f(y), u2f(z),
+        u2f(scaleX), u2f(scaleY),
+        color,
+        (double)u2f(wrapWidth));
+}
+
+// ----------------------------------------------------------------
 // TODO (Phase 4): Font wrapper
 //
 // void c2d_font_calc_glyph_pos(

@@ -110,13 +110,16 @@ C2D_Text :: struct {
 // C2D_TextFlags — bitfield passed to C2D_DrawText.
 C2D_TextFlags :: distinct u32
 
-C2D_AlignLeft      :: C2D_TextFlags(0)
-C2D_AlignCenter    :: C2D_TextFlags(1)
-C2D_AlignRight     :: C2D_TextFlags(2)
-C2D_AlignJustified :: C2D_TextFlags(3)
-C2D_WithColor      :: C2D_TextFlags(1 << 2) // pass u32 color as extra arg
-C2D_AtBaseline     :: C2D_TextFlags(1 << 3) // y is baseline, not top
-C2D_WordWrap       :: C2D_TextFlags(1 << 4) // pass wrap width as extra arg
+// Alignment — bits 2-3 (BIT(2) must be set to activate, low bits select kind).
+// AlignLeft is 0 (no bit set = default left).
+C2D_AlignLeft      :: C2D_TextFlags(0 << 2) // = 0  left-justify (default)
+C2D_AlignRight     :: C2D_TextFlags(1 << 2) // = 4  right edge at x
+C2D_AlignCenter    :: C2D_TextFlags(2 << 2) // = 8  centred on x
+C2D_AlignJustified :: C2D_TextFlags(3 << 2) // = 12 justified
+// Modifier flags
+C2D_AtBaseline     :: C2D_TextFlags(1 << 0) // = 1  y is baseline, not top
+C2D_WithColor      :: C2D_TextFlags(1 << 1) // = 2  pass u32 color as extra arg
+C2D_WordWrap       :: C2D_TextFlags(1 << 4) // = 16 pass f32 wrap width as extra arg
 
 // ----------------------------------------
 // Sprite types  (Phase 4)
