@@ -77,7 +77,9 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── SpriteSheet-Example/    ← Full sprite-sheet pipeline: C2D_SpriteSheetLoad → C2D_SpriteFromSheet + all sprite helpers ✅
 │   ├── CustomFont-Example/     ← C2D_FontLoadSystem + C2D_TextFontParse ✅
 │   ├── Triangle-Example/       ← Citro3D: vertex buffers, PICA200 shader, per-vertex colour ✅
-│   └── Texture-Example/        ← Citro3D: procedural texture, Morton tiling, C3D_TexBind ✅
+│   ├── Texture-Example/        ← Citro3D: procedural texture, Morton tiling, C3D_TexBind ✅
+│   ├── DepthTest-Example/      ← Citro3D: depth test, PICA200 reverse-Z, GEQUAL convention ✅
+│   └── AlphaBlend-Example/     ← Citro3D: src-alpha blending, back-to-front draw order ✅
 │
 └── tools/
     ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
@@ -262,6 +264,7 @@ Examples created: `SpriteSheet-Example`, `CustomFont-Example`
 
 - ✅ Render triangle to screen (vertex buffers, PICA200 shader, per-vertex colour)
 - ✅ Texture mapping (C3D_Tex, TexEnv) — validated in Phase 6
+- ✅ Depth testing and alpha blending — validated in Phase 7
 
 #### Triangle-Example implementation notes
 
@@ -344,15 +347,69 @@ reads the texture.
 
 ---
 
-### 🔲 Phase 7 — Citro3D effects, TexEnv, framebuffer  ← **NEXT**
+### ✅ Phase 7 — Citro3D effects: depth test and alpha blend
 
-- TexEnv setup (`C3D_TexEnv*`)
-- Stencil, depth test, alpha blend, cull face
-- Framebuffer transfer and custom render targets
+All effect bindings validated with two focused examples.
+
+**Implemented and tested:**
+- `C3D_DepthMap` (bridge — float params: zScale, zOffset)
+- `C3D_DepthTest` (enable, test function, write mask)
+- `C3D_AlphaBlend` (blend equations and factors for colour and alpha)
+- `C3D_CullFace` (already used since Phase 5)
+
+**Declared but not yet example-tested:**
+- `C3D_StencilTest`, `C3D_StencilOp`
+- `C3D_AlphaTest`
+- `C3D_ColorLogicOp`, `C3D_FragOpMode`
+- `C3D_EarlyDepthTest`
+
+#### DepthTest-Example implementation notes
+
+**PICA200 uses reverse-Z with GEQUAL**
+
+The PICA200 GPU clips z to the range `[-w, 0]` rather than `[-w, w]`.  With
+`C3D_DepthMap(true, -1.0, 0.0)` the depth buffer value is computed as
+`depth = -z_clip`.  Near geometry (small vertex-z → z_clip ≈ -1) gets a
+**high** depth value (≈1); far geometry gets a **low** depth value (≈0).
+
+Use `GPU_GEQUAL` as the test function: "pass if new_depth >= stored_depth".
+This means nearer geometry (higher depth) beats farther geometry (lower depth).
+
+Clear the depth buffer to `0` each frame so the first geometry drawn always
+passes (any depth value ≥ 0).
+
+```odin
+c3d.C3D_DepthMap(true, -1.0, 0.0)          // near → depth 1, far → depth 0
+c3d.C3D_DepthTest(true, .GEQUAL, .ALL)      // nearer wins
+// ...
+c3d.C3D_RenderTargetClear(top, c3d.C3D_CLEAR_ALL, bgColour, 0) // clearDepth=0
+```
+
+#### AlphaBlend-Example implementation notes
+
+**Vertex alpha flows through TexEnv to the blend stage**
+
+The vertex color attribute carries alpha in its `.w` component.  The vertex
+shader passes it through unchanged (`mov out1, vtxclr`).  With TexEnv in
+`C3D_Both / PRIMARY_COLOR / REPLACE` mode the full RGBA reaches the fragment
+stage, where `C3D_AlphaBlend` uses it:
+
+```odin
+c3d.C3D_AlphaBlend(.ADD, .ADD,
+                   .SRC_ALPHA, .ONE_MINUS_SRC_ALPHA,
+                   .SRC_ALPHA, .ONE_MINUS_SRC_ALPHA)
+```
+
+**Back-to-front draw order is mandatory**
+
+Alpha blending reads the existing framebuffer colour as the destination.
+Geometry must be submitted back-to-front; depth test should be disabled
+(`C3D_DepthTest(false, .ALWAYS, .ALL)`) to avoid farther transparent surfaces
+failing the depth test before they can blend.
 
 ---
 
-### 🔲 Phase 8 — Citro3D math (native Odin)
+### 🔲 Phase 8 — Citro3D math (native Odin)  ← **NEXT**
 
 All `maths.h` functions are `static inline` in C, so they cannot be linked — they must be reimplemented natively in `lib/c3d/math.odin`.
 
