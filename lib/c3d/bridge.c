@@ -225,6 +225,31 @@ bool c3d_tex_init(C3D_Tex* tex, uint16_t width, uint16_t height,
     return C3D_TexInit(tex, width, height, colorFmt);
 }
 
+// C3D_TexSetFilter — static inline in c3d/texture.h.
+// Sets the magnification and minification filter on a texture.
+// All params are integer-typed enums; no u2f conversion required.
+void c3d_tex_set_filter(C3D_Tex* tex,
+                        GPU_TEXTURE_FILTER_PARAM magFilter,
+                        GPU_TEXTURE_FILTER_PARAM minFilter) {
+    C3D_TexSetFilter(tex, magFilter, minFilter);
+}
+
+// C3D_TexSetWrap — static inline in c3d/texture.h.
+// Sets the S and T (U and V) wrap modes on a texture.
+void c3d_tex_set_wrap(C3D_Tex* tex,
+                      GPU_TEXTURE_WRAP_PARAM wrapS,
+                      GPU_TEXTURE_WRAP_PARAM wrapT) {
+    C3D_TexSetWrap(tex, wrapS, wrapT);
+}
+
+// C3D_Tex2DGetImagePtr (level 0) — static inline in c3d/texture.h.
+// Returns a pointer to the raw pixel data buffer allocated by C3D_TexInit.
+// Use this to write Morton-tiled pixel data directly into GPU memory,
+// then call C3D_TexFlush to make it visible to the GPU.
+void* c3d_tex2d_get_image_ptr(C3D_Tex* tex) {
+    return C3D_Tex2DGetImagePtr(tex, 0, NULL);
+}
+
 // ----------------------------------------------------------------
 // C3D_RenderTargetClear — static inline in c3d/renderqueue.h.
 // Calls C3D_FrameBufClear on the target's embedded framebuffer.

@@ -76,7 +76,8 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── DrawTextDynamic-Example/ ← TextBufClear + snprintf counter ✅
 │   ├── SpriteSheet-Example/    ← Full sprite-sheet pipeline: C2D_SpriteSheetLoad → C2D_SpriteFromSheet + all sprite helpers ✅
 │   ├── CustomFont-Example/     ← C2D_FontLoadSystem + C2D_TextFontParse ✅
-│   └── Triangle-Example/       ← Citro3D: vertex buffers, PICA200 shader, per-vertex colour ✅
+│   ├── Triangle-Example/       ← Citro3D: vertex buffers, PICA200 shader, per-vertex colour ✅
+│   └── Texture-Example/        ← Citro3D: procedural texture, Morton tiling, C3D_TexBind ✅
 │
 └── tools/
     ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
@@ -257,14 +258,10 @@ Examples created: `SpriteSheet-Example`, `CustomFont-Example`
 
 ---
 
-### 🔧 Phase 5 — Citro3D core examples  ← **IN PROGRESS**
-
-The Citro3D bindings are already **declared** in `lib/c3d/base.odin` and `lib/c3d/bridge.c`.
-This phase validates them with working 3D examples:
+### ✅ Phase 5 — Citro3D core examples
 
 - ✅ Render triangle to screen (vertex buffers, PICA200 shader, per-vertex colour)
-- 🔲 Texture mapping (C3D_Tex, TexEnv)
-- 🔲 Depth testing and alpha blending
+- ✅ Texture mapping (C3D_Tex, TexEnv) — validated in Phase 6
 
 #### Triangle-Example implementation notes
 
@@ -302,16 +299,52 @@ register 1 (v1).
 
 ---
 
-### 🔲 Phase 6 — Citro3D texture management  ← **NEXT**
+### ✅ Phase 6 — Citro3D texture management
 
-- `C3D_TexInit`, `C3D_TexInitWithParams`
-- `C3D_TexLoadImage`, `C3D_TexGenerateMipmap`
-- `C3D_TexBind`, `C3D_TexFlush`, `C3D_TexDelete`
-- `C3D_TexSetLodBias`, `C3D_TexShadowParams`
+All texture management bindings validated with `Texture-Example`.
+
+**Implemented and tested:**
+- `C3D_TexInit` (bridge — static inline)
+- `C3D_TexLoadImage`, `C3D_TexFlush`, `C3D_TexDelete`
+- `C3D_TexBind` (bind to texture unit)
+- `C3D_TexSetFilter`, `C3D_TexSetWrap` (bridge — static inline, set mag/min filter and U/V wrap)
+- `C3D_Tex2DGetImagePtr` (bridge — returns raw GPU pixel buffer pointer for direct writes)
+- `C3D_TexShadowParams`, `C3D_TexSetLodBias` (bridge — float params, declared; not tested in this phase)
+
+**Also declared (not yet example-tested):**
+- `C3D_TexInitWithParams`, `C3D_TexGenerateMipmap`
+
+#### Texture-Example implementation notes
+
+**Morton (Z-curve) tiling**
+
+The PICA200 GPU does not accept scanline-order texture data.  Pixels must be
+stored in Morton (Z-curve) order within 8×8 tiles, with tiles arranged
+row-major.  The interleaving formula for a pixel at `(px, py)` within a tile:
+
+```
+morton = (px&1) | ((py&1)<<1) | ((px&2)<<1) | ((py&2)<<2) | ((px&4)<<2) | ((py&4)<<3)
+```
+
+The same algorithm is used in `tools/png2t3x.odin` for converting PNG files.
+
+**ABGR byte order**
+
+GPU_RGBA8 stores each pixel as four bytes in `[A, B, G, R]` order at consecutive
+addresses (equivalent to a little-endian 0xRRGGBBAA u32 word).
+
+**Direct-write pattern**
+
+`C3D_TexInit` allocates the GPU-visible buffer in linear heap.  Rather than
+allocating a separate staging buffer and going through `C3D_TexLoadImage` (GX DMA),
+writing directly to `tex.data` via `C3D_Tex2DGetImagePtr` and then calling
+`C3D_TexFlush` is simpler and matches the official citro3d example pattern.
+`C3D_TexFlush` calls `GSPGPU_FlushDataCache` to flush CPU caches before the GPU
+reads the texture.
 
 ---
 
-### 🔲 Phase 7 — Citro3D effects, TexEnv, framebuffer
+### 🔲 Phase 7 — Citro3D effects, TexEnv, framebuffer  ← **NEXT**
 
 - TexEnv setup (`C3D_TexEnv*`)
 - Stencil, depth test, alpha blend, cull face

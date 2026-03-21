@@ -1,0 +1,45 @@
+; vshader.v.pica — textured-quad vertex shader for Citro3D Phase 6.
+;
+; Uniform:  projection[4]   — 4×4 orthographic projection matrix
+;
+; Inputs (AttrInfo_AddLoader / BufInfo_Add permutation 0x10):
+;   v0 — position (x, y, z)    — 3 floats; GPU pads w=1.0 automatically
+;   v1 — texcoord (u, v)       — 2 floats; zw=0.0
+;
+; Outputs:
+;   out0 — clip-space position  (projected)
+;   out1 — vertex color         (constant white — TexEnv uses TEXTURE0 not color)
+;   out2 — texcoord0            (UV passed through for texture unit 0)
+
+.fvec projection[4]
+
+; myconst: (0.0, 1.0, -1.0, 0.1) — yyyy component = (1.0,1.0,1.0,1.0).
+.constf myconst(0.0, 1.0, -1.0, 0.1)
+.alias ones myconst.yyyy
+
+.alias vtxpos v0
+.alias vtxuv  v1
+
+.out out0 position
+.out out1 color
+.out out2 texcoord0
+
+.proc main
+    ; Copy position and force w = 1.0.
+    mov r0,   vtxpos
+    mov r0.w, ones
+
+    ; Project position.
+    dp4 out0.x, projection[0], r0
+    dp4 out0.y, projection[1], r0
+    dp4 out0.z, projection[2], r0
+    dp4 out0.w, projection[3], r0
+
+    ; Constant white vertex color (TexEnv ignores it in this example).
+    mov out1, ones
+
+    ; Pass UV coordinates through unchanged (zw remain 0.0).
+    mov out2.xy, vtxuv.xy
+
+    end
+.end

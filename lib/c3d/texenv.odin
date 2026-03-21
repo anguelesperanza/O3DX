@@ -49,11 +49,29 @@ foreign c3d_bridge {
     C3D_TexEnvScale :: proc(env: ^C3D_TexEnv, mode: C3D_TexEnvMode,
                             scale: GPU_TEVSCALE) ---
 
-    // ── Texture init ─────────────────────────────────────────
+    // ── Texture init / filter / wrap ─────────────────────────
 
     // C3D_TexInit — allocate and upload a 2-D texture (convenience wrapper).
     // Equivalent to C3D_TexInitWithParams with type=TEX2D, onVram=false.
     @(link_name = "c3d_tex_init")
     C3D_TexInit :: proc(tex: ^C3D_Tex, width, height: u16,
                         format: GPU_TEXCOLOR) -> bool ---
+
+    // C3D_TexSetFilter — set magnification and minification filter modes.
+    // Must be called after C3D_TexInit; operates on tex.param directly.
+    @(link_name = "c3d_tex_set_filter")
+    C3D_TexSetFilter :: proc(tex: ^C3D_Tex,
+                             magFilter, minFilter: GPU_TEXTURE_FILTER_PARAM) ---
+
+    // C3D_TexSetWrap — set U (S) and V (T) wrap modes.
+    // Must be called after C3D_TexInit; operates on tex.param directly.
+    @(link_name = "c3d_tex_set_wrap")
+    C3D_TexSetWrap :: proc(tex: ^C3D_Tex,
+                           wrapS, wrapT: GPU_TEXTURE_WRAP_PARAM) ---
+
+    // C3D_Tex2DGetImagePtr (level 0) — returns the raw pixel data pointer
+    // allocated by C3D_TexInit.  Write Morton-tiled pixels here, then call
+    // C3D_TexFlush to flush CPU caches before the GPU reads the texture.
+    @(link_name = "c3d_tex2d_get_image_ptr")
+    C3D_Tex2DGetImagePtr :: proc(tex: ^C3D_Tex) -> rawptr ---
 }
