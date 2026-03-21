@@ -69,10 +69,9 @@ foreign citro3d {
     C3D_FVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id, size: i32) -> ^C3D_FVec ---
     C3D_IVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id: i32) -> ^u32 ---
     C3D_BoolUnifSet    :: proc(type_: GPU_SHADER_TYPE, id: i32, value: bool) ---
+    // C3D_FVUnifMtxNx4 is the base exported symbol; Mtx4x4/3x4/2x4 are
+    // static-inline wrappers — they live in the c3d_bridge block below.
     C3D_FVUnifMtxNx4   :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx, num: i32) ---
-    C3D_FVUnifMtx4x4   :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
-    C3D_FVUnifMtx3x4   :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
-    C3D_FVUnifMtx2x4   :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
     C3D_UpdateUniforms  :: proc(type_: GPU_SHADER_TYPE) ---
 
     // --- Sync transfers ---
@@ -183,6 +182,15 @@ foreign import c3d_bridge "system:c3d_bridge"
 
 @(default_calling_convention = "c")
 foreign c3d_bridge {
+    // --- Render target clear (static inline in c3d/renderqueue.h) ---
+    // Clears the colour and/or depth buffers of a render target.
+    // clearBits: C3D_CLEAR_COLOR | C3D_CLEAR_DEPTH | C3D_CLEAR_ALL
+    // clearColor: RGBA8 packed colour (e.g. 0x000000FF = opaque black)
+    // clearDepth: depth value (typically 0 for near-plane clear)
+    @(link_name = "c3d_render_target_clear")
+    C3D_RenderTargetClear :: proc(target: rawptr, clearBits: C3D_ClearBits,
+                                  clearColor, clearDepth: u32) ---
+
     // --- Timer / usage queries (return float in hard-float ABI) ---
     @(link_name = "c3d_get_processing_time")
     C3D_GetProcessingTime :: proc() -> f32 ---
@@ -280,4 +288,15 @@ foreign c3d_bridge {
 
     @(link_name = "proc_tex_lut_from_array")
     ProcTexLut_FromArray :: proc(lut: ^C3D_ProcTexLut, data: ^f32) ---
+
+    // --- Uniform matrix upload (static inline in c3d/uniforms.h) ---
+    // These are convenience wrappers around C3D_FVUnifMtxNx4 with num hardcoded.
+    @(link_name = "c3d_fvunif_mtx4x4")
+    C3D_FVUnifMtx4x4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
+
+    @(link_name = "c3d_fvunif_mtx3x4")
+    C3D_FVUnifMtx3x4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
+
+    @(link_name = "c3d_fvunif_mtx2x4")
+    C3D_FVUnifMtx2x4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
 }

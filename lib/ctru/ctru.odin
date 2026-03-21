@@ -92,7 +92,26 @@ foreign ctru {
     free           :: proc(ptr: rawptr) ---
     memset         :: proc(ptr: rawptr, value: i32, size: uint) -> rawptr ---
     memcpy         :: proc(dst: rawptr, src: rawptr, size: uint) -> rawptr ---
+
+    // --- 3DS linear heap allocator (3ds/allocator/linear.h) ---
+    // Allocates from the linear heap, which is required for GPU vertex
+    // buffers (BufInfo_Add), texture data, and shader binaries.
+    linearAlloc    :: proc(size: uint) -> rawptr ---
+    linearFree     :: proc(ptr: rawptr) ---
+
+    // --- C stdio (newlib FILE* via 3dsx.specs) ---
+    // FILE* is opaque; pass as rawptr.  Used for loading assets from romfs.
+    fopen          :: proc(path: cstring, mode: cstring) -> rawptr ---
+    fclose         :: proc(file: rawptr) -> i32 ---
+    fread          :: proc(ptr: rawptr, size: uint, count: uint, file: rawptr) -> uint ---
+    fseek          :: proc(file: rawptr, offset: i32, origin: i32) -> i32 ---
+    ftell          :: proc(file: rawptr) -> i32 ---
 }
+
+// ── stdio seek origin constants ──────────────────────────────
+SEEK_SET :: i32(0) // seek from beginning of file
+SEEK_CUR :: i32(1) // seek from current position
+SEEK_END :: i32(2) // seek from end of file
 
 // ============================================================
 // ctru_bridge — wrappers for static-inline libctru functions

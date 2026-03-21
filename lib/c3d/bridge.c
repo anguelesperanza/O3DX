@@ -160,3 +160,94 @@ void c3d_proc_tex_lod_bias(C3D_ProcTex* pt, uint32_t bias) {
 void proc_tex_lut_from_array(C3D_ProcTexLut* lut, float* data) {
     ProcTexLut_FromArray(lut, data);
 }
+
+// ----------------------------------------------------------------
+// Uniform matrix upload — C3D_FVUnifMtx4x4/3x4/2x4 are static inline
+// in c3d/uniforms.h; they just call C3D_FVUnifMtxNx4 with a fixed count.
+// ----------------------------------------------------------------
+
+void c3d_fvunif_mtx4x4(GPU_SHADER_TYPE type, int id, C3D_Mtx* mtx) {
+    C3D_FVUnifMtx4x4(type, id, mtx);
+}
+
+void c3d_fvunif_mtx3x4(GPU_SHADER_TYPE type, int id, C3D_Mtx* mtx) {
+    C3D_FVUnifMtx3x4(type, id, mtx);
+}
+
+void c3d_fvunif_mtx2x4(GPU_SHADER_TYPE type, int id, C3D_Mtx* mtx) {
+    C3D_FVUnifMtx2x4(type, id, mtx);
+}
+
+// ----------------------------------------------------------------
+// TexEnv — all static inline in c3d/texenv.h; bridged so Odin can
+// call them without linking errors.
+// None of these take float params, so no u2f/f2u needed.
+// ----------------------------------------------------------------
+
+void c3d_tex_env_init(C3D_TexEnv* env) {
+    C3D_TexEnvInit(env);
+}
+
+void c3d_tex_env_src(C3D_TexEnv* env, C3D_TexEnvMode mode,
+                     GPU_TEVSRC s1, GPU_TEVSRC s2, GPU_TEVSRC s3) {
+    C3D_TexEnvSrc(env, mode, s1, s2, s3);
+}
+
+void c3d_tex_env_op_rgb(C3D_TexEnv* env,
+                        GPU_TEVOP_RGB o1, GPU_TEVOP_RGB o2, GPU_TEVOP_RGB o3) {
+    C3D_TexEnvOpRgb(env, o1, o2, o3);
+}
+
+void c3d_tex_env_op_alpha(C3D_TexEnv* env,
+                          GPU_TEVOP_A o1, GPU_TEVOP_A o2, GPU_TEVOP_A o3) {
+    C3D_TexEnvOpAlpha(env, o1, o2, o3);
+}
+
+void c3d_tex_env_func(C3D_TexEnv* env, C3D_TexEnvMode mode, GPU_COMBINEFUNC func) {
+    C3D_TexEnvFunc(env, mode, func);
+}
+
+void c3d_tex_env_color(C3D_TexEnv* env, uint32_t color) {
+    C3D_TexEnvColor(env, color);
+}
+
+void c3d_tex_env_scale(C3D_TexEnv* env, C3D_TexEnvMode mode, GPU_TEVSCALE scale) {
+    C3D_TexEnvScale(env, mode, scale);
+}
+
+// ----------------------------------------------------------------
+// C3D_TexInit — static inline in c3d/texture.h.
+// Calls C3D_TexInitWithParams with NULL cube and sensible defaults.
+// ----------------------------------------------------------------
+
+bool c3d_tex_init(C3D_Tex* tex, uint16_t width, uint16_t height,
+                  GPU_TEXCOLOR colorFmt) {
+    return C3D_TexInit(tex, width, height, colorFmt);
+}
+
+// ----------------------------------------------------------------
+// C3D_RenderTargetClear — static inline in c3d/renderqueue.h.
+// Calls C3D_FrameBufClear on the target's embedded framebuffer.
+// ----------------------------------------------------------------
+
+void c3d_render_target_clear(void* target, C3D_ClearBits clearBits,
+                              uint32_t clearColor, uint32_t clearDepth) {
+    C3D_RenderTargetClear((C3D_RenderTarget*)target, clearBits,
+                          clearColor, clearDepth);
+}
+
+// ----------------------------------------------------------------
+// Mtx_OrthoTilt — exported from libcitro3d but takes float params.
+// ----------------------------------------------------------------
+
+void mtx_ortho_tilt(C3D_Mtx* mtx,
+                    uint32_t left,  uint32_t right,
+                    uint32_t bottom, uint32_t top,
+                    uint32_t near,  uint32_t far,
+                    bool leftHanded) {
+    Mtx_OrthoTilt(mtx,
+                  u2f(left), u2f(right),
+                  u2f(bottom), u2f(top),
+                  u2f(near), u2f(far),
+                  leftHanded);
+}

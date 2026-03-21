@@ -75,7 +75,8 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── DrawTextWrap-Example/   ← C2D_DrawTextColorWrap ✅
 │   ├── DrawTextDynamic-Example/ ← TextBufClear + snprintf counter ✅
 │   ├── SpriteSheet-Example/    ← Full sprite-sheet pipeline: C2D_SpriteSheetLoad → C2D_SpriteFromSheet + all sprite helpers ✅
-│   └── CustomFont-Example/     ← C2D_FontLoadSystem + C2D_TextFontParse ✅
+│   ├── CustomFont-Example/     ← C2D_FontLoadSystem + C2D_TextFontParse ✅
+│   └── Triangle-Example/       ← Citro3D: vertex buffers, PICA200 shader, per-vertex colour ✅
 │
 └── tools/
     ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
@@ -256,18 +257,52 @@ Examples created: `SpriteSheet-Example`, `CustomFont-Example`
 
 ---
 
-### 🔲 Phase 5 — Citro3D core examples  ← **NEXT**
+### 🔧 Phase 5 — Citro3D core examples  ← **IN PROGRESS**
 
 The Citro3D bindings are already **declared** in `lib/c3d/base.odin` and `lib/c3d/bridge.c`.
 This phase validates them with working 3D examples:
 
-- Render triangle to screen (vertex buffers, shaders, attribute setup)
-- Texture mapping (C3D_Tex, TexEnv)
-- Depth testing and alpha blending
+- ✅ Render triangle to screen (vertex buffers, PICA200 shader, per-vertex colour)
+- 🔲 Texture mapping (C3D_Tex, TexEnv)
+- 🔲 Depth testing and alpha blending
+
+#### Triangle-Example implementation notes
+
+Getting a triangle rendering in Citro3D from Odin required working through several non-obvious
+issues in the Odin → C ABI bridge. These are documented here so future phases don't have to
+rediscover them.
+
+**`C3D_FVec` field layout is reversed**
+
+The C struct is declared as `{ float w; float z; float y; float x; }` (offsets 0, 4, 8, 12).
+Odin's binding declares it as `{ x, y, z, w: f32 }` with the same offsets, so the field names are
+swapped: `Odin .x` = `C .w` at offset 0. When writing struct literals the positional order is
+`{x, y, z, w}` — remember that `.x` is actually the W component in memory.
+
+**`Mtx_OrthoTilt` bridge does not write to the matrix at runtime**
+
+The bridge function assembles correct arguments (verified by disassembly and `nm`) but the
+projection matrix remains all-zero after the call when running in Citra. The root cause is a
+soft-float / hard-float ABI edge case that manifests only at runtime. Workaround: set the matrix
+manually in Odin using `C3D_FVec` struct literals, computing the values by hand from the
+`Mtx_OrthoTilt` source. The full derivation is in `Examples/Triangle-Example/main.odin`.
+
+**PICA200 framebuffer is portrait (240 × 400)**
+
+The GPU renders into a 240 × 400 portrait buffer. `Mtx_OrthoTilt` (and the manual equivalent)
+applies a 90° clockwise rotation so that the app can work in 400 × 240 landscape coordinates.
+After the tilt, triangle winding appears reversed relative to the landscape coordinate system —
+disable face culling with `C3D_CullFace(.NONE)` or re-wind your vertices accordingly.
+
+**BufInfo permutation encoding**
+
+`BufInfo_Add` takes a permutation nibble-field. For two buffer-loaded attributes (position → v0,
+colour → v1) the value is `0x10`: nibble 0 = slot 0 → register 0 (v0), nibble 1 = slot 1 →
+register 1 (v1).
 
 ---
 
-### 🔲 Phase 6 — Citro3D texture management
+### 🔲 Phase 6 — Citro3D texture management  ← **NEXT**
 
 - `C3D_TexInit`, `C3D_TexInitWithParams`
 - `C3D_TexLoadImage`, `C3D_TexGenerateMipmap`

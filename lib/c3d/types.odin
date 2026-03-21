@@ -61,9 +61,18 @@ C3D_TexInitParams :: struct {
 C3D_DEPTHTYPE :: i32
 
 C3D_DEPTHTYPE_NO_DEPTH          :: C3D_DEPTHTYPE(-1)
-C3D_DEPTHTYPE_DEPTH16           :: C3D_DEPTHTYPE(3) // GPU_RB_DEPTH16
-C3D_DEPTHTYPE_DEPTH24           :: C3D_DEPTHTYPE(2) // GPU_RB_DEPTH24
-C3D_DEPTHTYPE_DEPTH24_STENCIL8  :: C3D_DEPTHTYPE(0) // GPU_RB_DEPTH24_STENCIL8
+C3D_DEPTHTYPE_DEPTH16           :: C3D_DEPTHTYPE(0) // GPU_RB_DEPTH16       = 0
+C3D_DEPTHTYPE_DEPTH24           :: C3D_DEPTHTYPE(2) // GPU_RB_DEPTH24       = 2
+C3D_DEPTHTYPE_DEPTH24_STENCIL8  :: C3D_DEPTHTYPE(3) // GPU_RB_DEPTH24_STENCIL8 = 3
+
+// GPU_RB_* — GPU_RENDERBUFFER_TYPE aliases.
+// Colour formats:
+GPU_RB_RGBA8    :: GPU_COLORBUF.RGBA8   // = 0
+GPU_RB_RGB8     :: GPU_COLORBUF.RGB8    // = 1
+// Depth formats (raw integer values, used in C3D_DEPTHTYPE):
+GPU_RB_DEPTH16           :: C3D_DEPTHTYPE(0)
+GPU_RB_DEPTH24           :: C3D_DEPTHTYPE(2)
+GPU_RB_DEPTH24_STENCIL8  :: C3D_DEPTHTYPE(3)
 
 // ============================================================
 // Framebuffer types  (Phase 7)
@@ -112,17 +121,20 @@ C3D_BufInfo :: struct {
 // Texture environment types  (Phase 7)
 // ============================================================
 
-C3D_TexEnv :: struct {
-    srcRgb:   u16,
-    srcAlpha: u16,
-    opRgb:    u32,
-    opAlpha:  u32,
-    funcRgb:  GPU_COMBINEFUNC,
-    funcAlpha: GPU_COMBINEFUNC,
-    color:    u32,
-    scaleRgb: GPU_TEVSCALE,
-    scaleAlpha: GPU_TEVSCALE,
-}
+// C3D_TexEnv — texture environment stage (20 bytes on ARM32).
+// Matches the actual C struct in c3d/texenv.h exactly:
+//   u16 srcRgb, srcAlpha          (4 bytes, offset  0)
+//   union { u32 opAll;            (4 bytes, offset  4)
+//           struct { opRgb:12, opAlpha:12 }; }
+//   u16 funcRgb, funcAlpha        (4 bytes, offset  8)
+//   u32 color                     (4 bytes, offset 12)
+//   u16 scaleRgb, scaleAlpha      (4 bytes, offset 16)
+//
+// IMPORTANT: Never access fields directly from Odin.
+// Always use the bridge functions (C3D_TexEnvInit, C3D_TexEnvSrc, etc.)
+// which operate on the correct C layout via bridge.c.
+// Declared as an opaque byte array to prevent accidental field access.
+C3D_TexEnv :: [20]u8
 
 C3D_TexEnvMode :: distinct u32
 C3D_RGB   :: C3D_TexEnvMode(1)
@@ -448,15 +460,31 @@ GPU_TEVSRC :: enum u32 {
     PREVIOUS          = 0xF,
 }
 
-// TexEnv operands
-GPU_TEVOP :: enum u32 {
+// TexEnv RGB channel operands (GPU_TEVOP_RGB in GPU/enums.h).
+GPU_TEVOP_RGB :: enum u32 {
     SRC_COLOR           = 0x0,
     ONE_MINUS_SRC_COLOR = 0x1,
     SRC_ALPHA           = 0x2,
     ONE_MINUS_SRC_ALPHA = 0x3,
     SRC_R               = 0x4,
+    ONE_MINUS_SRC_R     = 0x5,
     SRC_G               = 0x8,
+    ONE_MINUS_SRC_G     = 0x9,
     SRC_B               = 0xC,
+    ONE_MINUS_SRC_B     = 0xD,
+}
+
+// TexEnv alpha channel operands (GPU_TEVOP_A in GPU/enums.h).
+// Note: the ordering starts with ALPHA (not COLOR) to match the hardware.
+GPU_TEVOP_A :: enum u32 {
+    SRC_ALPHA           = 0x0,
+    ONE_MINUS_SRC_ALPHA = 0x1,
+    SRC_R               = 0x2,
+    ONE_MINUS_SRC_R     = 0x3,
+    SRC_G               = 0x4,
+    ONE_MINUS_SRC_G     = 0x5,
+    SRC_B               = 0x6,
+    ONE_MINUS_SRC_B     = 0x7,
 }
 
 // TexEnv combine function
@@ -478,6 +506,14 @@ GPU_TEVSCALE :: enum u32 {
     SCALE_2 = 1,
     SCALE_4 = 2,
 }
+
+// Convenience aliases matching the C macros GPU_TEVSCALE_1 etc.
+GPU_TEVSCALE_1 :: GPU_TEVSCALE.SCALE_1
+GPU_TEVSCALE_2 :: GPU_TEVSCALE.SCALE_2
+GPU_TEVSCALE_4 :: GPU_TEVSCALE.SCALE_4
+
+// GPU_PRIMARY_COLOR — shorthand for GPU_TEVSRC.PRIMARY_COLOR (= 0).
+GPU_PRIMARY_COLOR :: GPU_TEVSRC.PRIMARY_COLOR
 
 // Light LUT identifiers
 GPU_LIGHTLUTID :: enum u32 {
