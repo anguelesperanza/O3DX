@@ -262,7 +262,13 @@ void c3d_render_target_clear(void* target, C3D_ClearBits clearBits,
 }
 
 // ----------------------------------------------------------------
-// Mtx_OrthoTilt — exported from libcitro3d but takes float params.
+// sqrtf bridge — Odin soft-float can't call libm sqrtf directly.
+// ----------------------------------------------------------------
+
+uint32_t odin_sqrtf(uint32_t x) { return f2u(sqrtf(u2f(x))); }
+
+// ----------------------------------------------------------------
+// Projection matrices (all take float params)
 // ----------------------------------------------------------------
 
 void mtx_ortho_tilt(C3D_Mtx* mtx,
@@ -275,4 +281,171 @@ void mtx_ortho_tilt(C3D_Mtx* mtx,
                   u2f(bottom), u2f(top),
                   u2f(near), u2f(far),
                   leftHanded);
+}
+
+void mtx_ortho(C3D_Mtx* mtx,
+               uint32_t left,  uint32_t right,
+               uint32_t bottom, uint32_t top,
+               uint32_t near,  uint32_t far,
+               bool isLeftHanded) {
+    Mtx_Ortho(mtx,
+              u2f(left), u2f(right),
+              u2f(bottom), u2f(top),
+              u2f(near), u2f(far),
+              isLeftHanded);
+}
+
+void mtx_persp(C3D_Mtx* mtx,
+               uint32_t fovy, uint32_t aspect,
+               uint32_t near, uint32_t far,
+               bool isLeftHanded) {
+    Mtx_Persp(mtx, u2f(fovy), u2f(aspect), u2f(near), u2f(far), isLeftHanded);
+}
+
+void mtx_persp_tilt(C3D_Mtx* mtx,
+                    uint32_t fovy, uint32_t aspect,
+                    uint32_t near, uint32_t far,
+                    bool isLeftHanded) {
+    Mtx_PerspTilt(mtx, u2f(fovy), u2f(aspect), u2f(near), u2f(far), isLeftHanded);
+}
+
+void mtx_persp_stereo(C3D_Mtx* mtx,
+                      uint32_t fovy, uint32_t aspect,
+                      uint32_t near, uint32_t far,
+                      uint32_t iod,  uint32_t screen,
+                      bool isLeftHanded) {
+    Mtx_PerspStereo(mtx, u2f(fovy), u2f(aspect), u2f(near), u2f(far),
+                    u2f(iod), u2f(screen), isLeftHanded);
+}
+
+void mtx_persp_stereo_tilt(C3D_Mtx* mtx,
+                            uint32_t fovy, uint32_t aspect,
+                            uint32_t near, uint32_t far,
+                            uint32_t iod,  uint32_t screen,
+                            bool isLeftHanded) {
+    Mtx_PerspStereoTilt(mtx, u2f(fovy), u2f(aspect), u2f(near), u2f(far),
+                        u2f(iod), u2f(screen), isLeftHanded);
+}
+
+// ----------------------------------------------------------------
+// Matrix transforms (take float params)
+// ----------------------------------------------------------------
+
+void mtx_translate(C3D_Mtx* mtx,
+                   uint32_t x, uint32_t y, uint32_t z,
+                   bool bRightSide) {
+    Mtx_Translate(mtx, u2f(x), u2f(y), u2f(z), bRightSide);
+}
+
+void mtx_scale(C3D_Mtx* mtx, uint32_t x, uint32_t y, uint32_t z) {
+    Mtx_Scale(mtx, u2f(x), u2f(y), u2f(z));
+}
+
+void mtx_rotate_x(C3D_Mtx* mtx, uint32_t angle, bool bRightSide) {
+    Mtx_RotateX(mtx, u2f(angle), bRightSide);
+}
+
+void mtx_rotate_y(C3D_Mtx* mtx, uint32_t angle, bool bRightSide) {
+    Mtx_RotateY(mtx, u2f(angle), bRightSide);
+}
+
+void mtx_rotate_z(C3D_Mtx* mtx, uint32_t angle, bool bRightSide) {
+    Mtx_RotateZ(mtx, u2f(angle), bRightSide);
+}
+
+// Mtx_Rotate — axis is an FVec passed by value in citro3d (hard-float HFA).
+// Accept it via pointer from Odin, then pass by value to citro3d.
+void mtx_rotate(C3D_Mtx* mtx, C3D_FVec* axis, uint32_t angle, bool bRightSide) {
+    Mtx_Rotate(mtx, *axis, u2f(angle), bRightSide);
+}
+
+// ----------------------------------------------------------------
+// Matrix algebra — Mtx_Transpose/Multiply have only pointer params
+// and are safe to call directly (declared as direct imports in Odin).
+// Mtx_Inverse returns float — bridge returns bits.
+// ----------------------------------------------------------------
+
+uint32_t mtx_inverse(C3D_Mtx* out) {
+    return f2u(Mtx_Inverse(out));
+}
+
+// ----------------------------------------------------------------
+// Matrix × vector (FVec returned by value → use output pointer)
+// ----------------------------------------------------------------
+
+void mtx_multiply_fvec3(const C3D_Mtx* mtx, C3D_FVec* v, C3D_FVec* out) {
+    *out = Mtx_MultiplyFVec3(mtx, *v);
+}
+
+void mtx_multiply_fvec4(const C3D_Mtx* mtx, C3D_FVec* v, C3D_FVec* out) {
+    *out = Mtx_MultiplyFVec4(mtx, *v);
+}
+
+// ----------------------------------------------------------------
+// Matrix from quaternion
+// ----------------------------------------------------------------
+
+void mtx_from_quat(C3D_Mtx* m, C3D_FQuat* q) {
+    Mtx_FromQuat(m, *q);
+}
+
+// ----------------------------------------------------------------
+// Look-At
+// ----------------------------------------------------------------
+
+void mtx_look_at(C3D_Mtx* out,
+                 C3D_FVec* pos, C3D_FVec* target, C3D_FVec* up,
+                 bool isLeftHanded) {
+    Mtx_LookAt(out, *pos, *target, *up, isLeftHanded);
+}
+
+// ----------------------------------------------------------------
+// Quaternion operations (all FQuat by value → output pointer pattern)
+// ----------------------------------------------------------------
+
+void quat_multiply(C3D_FQuat* lhs, C3D_FQuat* rhs, C3D_FQuat* out) {
+    *out = Quat_Multiply(*lhs, *rhs);
+}
+
+void quat_pow(C3D_FQuat* q, uint32_t p, C3D_FQuat* out) {
+    *out = Quat_Pow(*q, u2f(p));
+}
+
+void quat_cross_fvec3(C3D_FQuat* q, C3D_FVec* v, C3D_FVec* out) {
+    *out = Quat_CrossFVec3(*q, *v);
+}
+
+void quat_rotate(C3D_FQuat* q, C3D_FVec* axis, uint32_t r,
+                 bool bRightSide, C3D_FQuat* out) {
+    *out = Quat_Rotate(*q, *axis, u2f(r), bRightSide);
+}
+
+void quat_rotate_x(C3D_FQuat* q, uint32_t r, bool bRightSide, C3D_FQuat* out) {
+    *out = Quat_RotateX(*q, u2f(r), bRightSide);
+}
+
+void quat_rotate_y(C3D_FQuat* q, uint32_t r, bool bRightSide, C3D_FQuat* out) {
+    *out = Quat_RotateY(*q, u2f(r), bRightSide);
+}
+
+void quat_rotate_z(C3D_FQuat* q, uint32_t r, bool bRightSide, C3D_FQuat* out) {
+    *out = Quat_RotateZ(*q, u2f(r), bRightSide);
+}
+
+void quat_from_mtx(const C3D_Mtx* m, C3D_FQuat* out) {
+    *out = Quat_FromMtx(m);
+}
+
+void quat_from_pitch_yaw_roll(uint32_t pitch, uint32_t yaw, uint32_t roll,
+                               bool bRightSide, C3D_FQuat* out) {
+    *out = Quat_FromPitchYawRoll(u2f(pitch), u2f(yaw), u2f(roll), bRightSide);
+}
+
+void quat_look_at(C3D_FVec* source, C3D_FVec* target,
+                  C3D_FVec* forward, C3D_FVec* up, C3D_FQuat* out) {
+    *out = Quat_LookAt(*source, *target, *forward, *up);
+}
+
+void quat_from_axis_angle(C3D_FVec* axis, uint32_t angle, C3D_FQuat* out) {
+    *out = Quat_FromAxisAngle(*axis, u2f(angle));
 }

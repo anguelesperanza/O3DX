@@ -289,6 +289,12 @@ foreign c3d_bridge {
     @(link_name = "proc_tex_lut_from_array")
     ProcTexLut_FromArray :: proc(lut: ^C3D_ProcTexLut, data: ^f32) ---
 
+    // --- Projection matrix (bridge: float params passed as uint32 bits via u2f) ---
+    // Use these instead of the bridged C Mtx_PerspTilt when you need the
+    // known-correct citro3d implementation (e.g. isLeftHanded=false / RH convention).
+    @(link_name = "mtx_persp_tilt")
+    Mtx_PerspTilt_Bridge :: proc(mtx: ^C3D_Mtx, fovy, aspect, near, far: f32, isLeftHanded: bool) ---
+
     // --- Uniform matrix upload (static inline in c3d/uniforms.h) ---
     // These are convenience wrappers around C3D_FVUnifMtxNx4 with num hardcoded.
     @(link_name = "c3d_fvunif_mtx4x4")

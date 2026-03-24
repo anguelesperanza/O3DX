@@ -1,0 +1,41 @@
+; vshader.v.pica — spinning cube vertex shader for the 3DS PICA200 GPU.
+;
+; Uniform:  mvp[4]  — 4×4 model-view-projection matrix
+;           (upload via C3D_FVUnifMtx4x4)
+;
+; Inputs (permutation 0x10):
+;   v0 — position (x, y, z)     — 3 floats; GPU pads w=1.0 automatically
+;   v1 — color    (r, g, b, a)  — 4 floats; passed through unchanged
+;
+; Outputs:
+;   out0 — clip-space position  (transformed by MVP)
+;   out1 — primary vertex color (pass-through)
+
+.fvec mvp[4]
+
+; myconst: (0.0, 1.0, -1.0, 0.0) — we only use the 1.0 (yyyy component).
+.constf myconst(0.0, 1.0, -1.0, 0.0)
+.alias ones myconst.yyyy
+
+.alias vtxpos v0
+.alias vtxclr v1
+
+.out out0 position
+.out out1 color
+
+.proc main
+    ; Copy position into r0 and force w = 1.0 so the matrix multiply is correct.
+    mov r0,   vtxpos
+    mov r0.w, ones
+
+    ; Transform by MVP matrix (row-major dp4).
+    dp4 out0.x, mvp[0], r0
+    dp4 out0.y, mvp[1], r0
+    dp4 out0.z, mvp[2], r0
+    dp4 out0.w, mvp[3], r0
+
+    ; Pass colour straight through.
+    mov out1, vtxclr
+
+    end
+.end

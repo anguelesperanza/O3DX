@@ -47,7 +47,7 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   └── c3d/
 │       ├── types.odin          ← Citro3D types + all GPU_* enums ✅
 │       ├── base.odin           ← Full C3D foreign bindings (declared) ✅
-│       ├── math.odin           ← Math stubs (FVec, Mtx, Quat) 🔲 (Phase 8)
+│       ├── math.odin           ← Full FVec/Mtx/Quat math library ✅ (Phase 8)
 │       └── bridge.c            ← ABI bridge for all float-param Citro3D functions
 │
 ├── Examples/
@@ -79,7 +79,8 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── Triangle-Example/       ← Citro3D: vertex buffers, PICA200 shader, per-vertex colour ✅
 │   ├── Texture-Example/        ← Citro3D: procedural texture, Morton tiling, C3D_TexBind ✅
 │   ├── DepthTest-Example/      ← Citro3D: depth test, PICA200 reverse-Z, GEQUAL convention ✅
-│   └── AlphaBlend-Example/     ← Citro3D: src-alpha blending, back-to-front draw order ✅
+│   ├── AlphaBlend-Example/     ← Citro3D: src-alpha blending, back-to-front draw order ✅
+│   └── SpinningCube-Example/   ← Citro3D: 3D perspective, model matrix, spinning cube ✅ (Phase 8)
 │
 └── tools/
     ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
@@ -409,17 +410,107 @@ failing the depth test before they can blend.
 
 ---
 
-### 🔲 Phase 8 — Citro3D math (native Odin)  ← **NEXT**
+### ✅ Phase 8 — Citro3D math library (native Odin)
 
-All `maths.h` functions are `static inline` in C, so they cannot be linked — they must be reimplemented natively in `lib/c3d/math.odin`.
+Full implementation of `maths.h` in `lib/c3d/math.odin`:
+- Static-inline functions reimplemented natively in Odin (correct field-mapping)
+- Exported functions bridged via `lib/c3d/bridge.c` (float ABI and FVec-by-value wrappers)
+- Demo: `SpinningCube-Example` — 6-face colour-coded cube with live Y-axis rotation
 
-- `FVec3_*`, `FVec4_*` (add, subtract, dot, cross, normalize, …)
-- `Mtx_*` (identity, multiply, translate, scale, rotate, ortho, perspective, …)
-- `Quat_*` (from axis-angle, multiply, normalize, to matrix, …)
+**Static-inline → Odin-native:**
+- `FVec4_New/Add/Subtract/Negate/Scale/PerspDivide/Dot/Magnitude/Normalize`
+- `FVec3_New/Dot/Magnitude/Normalize/Add/Subtract/Distance/Scale/Negate/Cross`
+- `Mtx_Zeros/Copy/Diagonal/Identity/Add/Subtract/MultiplyFVecH`
+- `Quat_New/Negate/Add/Subtract/Scale/Normalize/Dot/Identity/Conjugate/Inverse`
+- `FVec3_CrossQuat`
+
+**Exported → bridged:**
+- `Mtx_Transpose`, `Mtx_Multiply` (pointer-only — direct foreign import, no bridge needed)
+- `Mtx_Inverse` → `mtx_inverse` (returns float bits as u32)
+- `Mtx_MultiplyFVec3/4` → output-pointer bridges (FVec return value)
+- `Mtx_FromQuat`, `Mtx_LookAt`, `Mtx_Rotate` → FVec/FQuat by-value bridges
+- `Mtx_Translate/Scale/RotateX/Y/Z` → float parameter bridges
+- `Mtx_Ortho/Persp/OrthoTilt/PerspTilt/PerspStereo/PerspStereoTilt` → full projection bridges
+- `Quat_Multiply/Pow/CrossFVec3/Rotate/RotateX/Y/Z/FromMtx/FromPitchYawRoll/LookAt/FromAxisAngle`
+- `odin_sqrtf` bridge (libm sqrtf — needed by Magnitude/Normalize)
+
+#### Phase 8 implementation notes
+
+**All math respects the reversed C3D_FVec field layout**
+
+The `C3D_FVec` C struct stores `{ float w; float z; float y; float x; }` at offsets `{0, 4, 8, 12}`.
+Odin declares `{ x, y, z, w: f32 }` at the same offsets, so field names are swapped:
+`Odin .x` = logical W (offset 0), `Odin .w` = logical X (offset 12).
+
+Every static-inline function in `math.odin` accounts for this. The helper `FVec4_New(lx, ly, lz, lw)` is the canonical constructor:
+```odin
+FVec4_New :: proc(lx, ly, lz, lw: f32) -> C3D_FVec {
+    return C3D_FVec{ x = lw, y = lz, z = ly, w = lx }
+}
+```
+Component-wise operations (Add, Subtract, Scale, Dot) use Odin field names directly since
+the same offset mapping applies symmetrically to both operands.
+
+**FVec3 operations zero out the logical W slot (Odin `.x`)**
+
+`FVec3_New(lx, ly, lz)` = `C3D_FVec{ x=0, y=lz, z=ly, w=lx }`.
+`FVec3_Dot` sums only Odin `.w + .z + .y` (skipping `.x` = logical W = 0).
+
+**FVec3_Cross field derivation**
+
+Cross product `A×B = (Ay·Bz−Az·By, Az·Bx−Ax·Bz, Ax·By−Ay·Bx)` in logical x,y,z.
+With the mapping (logical X = Odin `.w`, logical Y = Odin `.z`, logical Z = Odin `.y`):
+```odin
+FVec3_Cross :: proc(a, b: C3D_FVec) -> C3D_FVec {
+    return C3D_FVec{
+        x = 0,
+        y = a.w*b.z - a.z*b.w,   // logical Z
+        z = a.y*b.w - a.w*b.y,   // logical Y
+        w = a.z*b.y - a.y*b.z,   // logical X
+    }
+}
+```
+
+**Mtx_Diagonal field mapping**
+
+`C3D_Mtx` diagonal entries: `r[0].x = lx` in C means `r[0].w = lx` in Odin (Odin `.w` = C `.x`):
+```odin
+out.r[0].w = x;  out.r[1].z = y;  out.r[2].y = z;  out.r[3].x = w
+```
+
+**Bridged FVec-by-value functions use output-pointer pattern**
+
+Functions that pass or return `C3D_FVec`/`C3D_FQuat` by value are homogeneous floating-point
+aggregates (HFAs) — the hard-float ABI passes them in VFP registers s0–s3, not integer registers.
+The bridge pattern is:
+```c
+void mtx_multiply_fvec4(const C3D_Mtx* mtx, C3D_FVec* v, C3D_FVec* out) {
+    *out = Mtx_MultiplyFVec4(mtx, *v);  // bridge.c (hard-float) passes *v in VFP regs correctly
+}
+```
+Odin calls this with stack pointers; bridge.c (compiled `-mfloat-abi=hard`) handles the HFA
+convention when forwarding to citro3d.
+
+**sqrtf requires its own bridge**
+
+`sqrtf` from libm uses the hard-float ABI (argument in s0, result in s0). It is wrapped the same
+way as all other float functions:
+```c
+uint32_t odin_sqrtf(uint32_t x) { return f2u(sqrtf(u2f(x))); }
+```
+
+**SpinningCube-Example — coordinate conventions**
+
+With `Mtx_PerspTilt(fovy=60°, aspect=400/240, near=0.01, far=100, isLeftHanded=true)`:
+- Camera at origin; +Z direction goes into the screen (left-handed)
+- Cube placed at z=+2 via `Mtx_Translate(0, 0, 2, true)`
+- `Mtx_RotateY(angle, true)` applied before translation so the cube spins in place
+- `C3D_CullFace(.NONE)` — disable culling while validating winding conventions
+- Depth test with GEQUAL (same as DepthTest-Example reverse-Z setup)
 
 ---
 
-### 🔲 Phase 9 — Citro3D lighting, fog, proctex
+### 🔲 Phase 9 — Citro3D lighting, fog, proctex  ← **NEXT**
 
 - `C3D_LightEnv*`, `C3D_Light*`
 - `FogLut_Exp`, `C3D_FogGasMode`
@@ -427,12 +518,12 @@ All `maths.h` functions are `static inline` in C, so they cannot be linked — t
 
 ---
 
-### 🔲 Phase 10 — Full 3D example
+### 🔲 Phase 10 — Full 3D scene
 
-A complete 3D scene using only the `lib/` packages:
-- Spinning textured cube or model
-- Lighting applied
-- Perspective projection via Phase 8 math
+A complete 3D scene using the full `lib/` package stack:
+- Textured spinning cube (combining Phase 6 textures + Phase 8 math)
+- Lighting applied (Phase 9)
+- Multiple objects with separate model matrices
 
 ---
 
