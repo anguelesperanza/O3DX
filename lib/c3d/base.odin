@@ -69,9 +69,7 @@ foreign citro3d {
     C3D_FVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id, size: i32) -> ^C3D_FVec ---
     C3D_IVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id: i32) -> ^u32 ---
     C3D_BoolUnifSet    :: proc(type_: GPU_SHADER_TYPE, id: i32, value: bool) ---
-    // C3D_FVUnifMtxNx4 is the base exported symbol; Mtx4x4/3x4/2x4 are
-    // static-inline wrappers — they live in the c3d_bridge block below.
-    C3D_FVUnifMtxNx4   :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx, num: i32) ---
+    // C3D_FVUnifMtxNx4 is static-inline in uniforms.h — bridged via c3d_fvunif_mtx_nx4 below.
     C3D_UpdateUniforms  :: proc(type_: GPU_SHADER_TYPE) ---
 
     // --- Sync transfers ---
@@ -250,6 +248,10 @@ foreign c3d_bridge {
     @(link_name = "c3d_light_spot_dir")
     C3D_LightSpotDir :: proc(light: ^C3D_Light, x, y, z: f32) ---
 
+    // C3D_LightColor — static inline: sets diffuse + specular0 + specular1 together.
+    @(link_name = "c3d_light_color")
+    C3D_LightColor :: proc(light: ^C3D_Light, r, g, b: f32) ---
+
     // --- Fog / gas (float params) ---
     @(link_name = "fog_lut_exp")
     FogLut_Exp :: proc(lut: ^C3D_FogLut, density, gradient, near, far: f32) ---
@@ -272,6 +274,10 @@ foreign c3d_bridge {
     // --- Light LUT ---
     @(link_name = "light_lut_from_array")
     LightLut_FromArray :: proc(lut: ^C3D_LightLut, data: ^f32) ---
+
+    // LightLut_Phong — wraps the LightLut_Phong macro (LightLut_FromFunc + powf).
+    @(link_name = "light_lut_phong")
+    LightLut_Phong :: proc(lut: ^C3D_LightLut, shininess: f32) ---
 
     @(link_name = "light_lut_from_func")
     LightLut_FromFunc :: proc(lut: ^C3D_LightLut, func: rawptr, param: f32, negative: bool) ---
@@ -296,7 +302,10 @@ foreign c3d_bridge {
     Mtx_PerspTilt_Bridge :: proc(mtx: ^C3D_Mtx, fovy, aspect, near, far: f32, isLeftHanded: bool) ---
 
     // --- Uniform matrix upload (static inline in c3d/uniforms.h) ---
-    // These are convenience wrappers around C3D_FVUnifMtxNx4 with num hardcoded.
+    // All bridged via bridge.c since they are static inline and have no exported symbol.
+    @(link_name = "c3d_fvunif_mtx_nx4")
+    C3D_FVUnifMtxNx4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx, num: i32) ---
+
     @(link_name = "c3d_fvunif_mtx4x4")
     C3D_FVUnifMtx4x4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
 

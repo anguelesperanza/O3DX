@@ -1,0 +1,91 @@
+; vshader.v.pica — Phase 9 hardware lighting.
+;
+; Uniforms:
+;   mvp[4]       c0-c3  — combined projection*model  (clip-space position)
+;   modelView[4] c4-c7  — model matrix only           (view-space normal/position)
+;
+; Vertex inputs:
+;   v0 — position (float3)
+;   v1 — normal   (float3)
+;
+; Outputs:
+;   outpos  — clip-space position   (hardware clips/rasterises)
+;   outnq   — normalquat            (lighting unit reads this)
+;   outview — view-space position   (lighting unit uses for attenuation/specular)
+;
+; Key insight: a single dp4 group writing to a temp register leaves the result in
+; reversed C3D_FVec component order.  Two chained dp4 groups therefore give wrong
+; clip-w and invisible geometry.  The fix is one dp4 group per destination:
+;   - mvp dp4 group  → directly to outpos   (no intermediate temp)
+;   - modelView dp4 group → temp r2 (normal in reversed format) → normalquat math
+;   - modelView dp4 group → temp r5 (position in reversed format) → swizzle to outview
+
+.fvec mvp[4], modelView[4]
+
+.constf myconst(0.5, 1.0, 0.0, 1.0e-4)
+.alias half  myconst.xxxx
+.alias ones  myconst.yyyy
+.alias zeros myconst.zzzz
+.alias eps   myconst.wwww
+
+.out outpos  position
+.out outnq   normalquat
+.out outview view
+
+.alias inpos v0
+.alias innrm v1
+
+.proc main
+    ; ── position in object space, w=1 ─────────────────────────────────────
+    mov r0.xyz, inpos
+    mov r0.w,   ones
+
+    ; ── normal in object space, w=0 (direction — no translation) ──────────
+    mov r1.xyz, innrm
+    mov r1.w,   zeros
+
+    ; ── clip-space position via MVP (single dp4 group → no chain hazard) ──
+    dp4 outpos.x, mvp[0], r0
+    dp4 outpos.y, mvp[1], r0
+    dp4 outpos.z, mvp[2], r0
+    dp4 outpos.w, mvp[3], r0
+
+    ; ── view-space normal via modelView ────────────────────────────────────
+    ; After dp4: r2 in reversed C3D_FVec format
+    ;   r2.x = 0  (w_vs of direction = 0)
+    ;   r2.y = nz_vs
+    ;   r2.z = ny_vs
+    ;   r2.w = nx_vs
+    dp4 r2.x, modelView[0], r1
+    dp4 r2.y, modelView[1], r1
+    dp4 r2.z, modelView[2], r1
+    dp4 r2.w, modelView[3], r1
+
+    ; ── normalquat from view-space normal ─────────────────────────────────
+    ; c = sqrt((1 + nz) / 2),  nz = r2.y
+    ; Note: constants must be src1 (never src2) on PICA200.
+    add r3.x, ones, r2.y       ; r3.x = 1 + nz
+    mul r3.x, half, r3.x       ; r3.x = (1 + nz) / 2
+    max r3.x, eps,  r3.x       ; clamp away from zero
+    rsq r4.x, r3.x             ; r4.x = 1/c
+    rcp r4.y, r4.x             ; r4.y = c
+    mul r3.x, half, r4.x       ; r3.x = 1/(2c)
+
+    ; outnq = (nx/(2c), ny/(2c), c, 0)
+    mul outnq.x, r2.w, r3.x   ; nx/(2c)
+    mul outnq.y, r2.z, r3.x   ; ny/(2c)
+    mov outnq.z, r4.y         ; c
+    mov outnq.w, zeros        ; 0
+
+    ; ── view-space position for the lighting unit ─────────────────────────
+    ; modelView * r0 → r5 in reversed format: (w=1, z_vs, y_vs, x_vs)
+    dp4 r5.x, modelView[0], r0
+    dp4 r5.y, modelView[1], r0
+    dp4 r5.z, modelView[2], r0
+    dp4 r5.w, modelView[3], r0
+
+    ; Swizzle to natural (x_vs, y_vs, z_vs, w_vs=1)
+    mov outview, r5.wzyx
+
+    end
+.end

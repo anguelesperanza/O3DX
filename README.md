@@ -80,7 +80,8 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── Texture-Example/        ← Citro3D: procedural texture, Morton tiling, C3D_TexBind ✅
 │   ├── DepthTest-Example/      ← Citro3D: depth test, PICA200 reverse-Z, GEQUAL convention ✅
 │   ├── AlphaBlend-Example/     ← Citro3D: src-alpha blending, back-to-front draw order ✅
-│   └── SpinningCube-Example/   ← Citro3D: 3D perspective, model matrix, spinning cube ✅ (Phase 8)
+│   ├── SpinningCube-Example/   ← Citro3D: 3D perspective, model matrix, spinning cube ✅ (Phase 8)
+│   └── Lighting-Example/       ← Citro3D: PICA200 hardware lighting, normalquat, LightEnv/Light/LUT ✅ (Phase 9)
 │
 └── tools/
     ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
@@ -510,11 +511,93 @@ With `Mtx_PerspTilt(fovy=60°, aspect=400/240, near=0.01, far=100, isLeftHanded=
 
 ---
 
-### 🔲 Phase 9 — Citro3D lighting, fog, proctex  ← **NEXT**
+### 🔄 Phase 9 — Citro3D lighting, fog, proctex  ← **IN PROGRESS**
 
-- `C3D_LightEnv*`, `C3D_Light*`
-- `FogLut_Exp`, `C3D_FogGasMode`
-- `C3D_ProcTex*`, `ProcTexLut_*`
+- ✅ `C3D_LightEnv*`, `C3D_Light*` — hardware lighting environment, material, LUTs (`Lighting-Example`)
+- 🔲 `FogLut_Exp`, `C3D_FogGasMode` — distance fog
+- 🔲 `C3D_ProcTex*`, `ProcTexLut_*` — procedural texture generation
+
+#### Phase 9 implementation notes — Lighting-Example
+
+**PICA200 hardware lighting pipeline overview**
+
+The PICA200 lighting unit reads two special vertex outputs written by the vertex shader:
+- `outnq` (`normalquat`) — a half-angle quaternion encoding the view-space surface normal
+- `outview` (`view`) — the view-space vertex position (used for attenuation and specular)
+
+The lighting unit applies the bound `C3D_LightEnv` (material, LUTs, light positions/colours) and
+produces `FRAGMENT_PRIMARY`, which is then consumed by the TexEnv stage. The TexEnv source must
+be set to `GPU_TEVSRC.FRAGMENT_PRIMARY` (not `PRIMARY_COLOR`) to display the lit colour.
+
+**Normalquat computation**
+
+The normalquat is a half-angle quaternion from the +Z axis to the view-space normal `(nx, ny, nz)`:
+```
+c = sqrt((1 + nz) / 2)        -- half-angle cosine, clamped away from zero
+q = (nx/(2c), ny/(2c), c, 0)  -- quaternion (x, y, z, w)
+```
+
+**PICA200 dp4 and reversed C3D_FVec order in temp registers**
+
+When a `dp4` group writes to a temp register, the results land in reversed C3D_FVec order —
+the first dp4 instruction fills the W component (stored in `.x`), the second fills Z (`.y`), etc.:
+```pica
+dp4 r2.x, modelView[0], r1   ; r2.x = nw_vs (= 0 for a direction)
+dp4 r2.y, modelView[1], r1   ; r2.y = nz_vs
+dp4 r2.z, modelView[2], r1   ; r2.z = ny_vs
+dp4 r2.w, modelView[3], r1   ; r2.w = nx_vs
+```
+The normalquat math therefore reads `nx = r2.w`, `ny = r2.z`, `nz = r2.y`.
+
+The view-space position is computed the same way and then swizzled back to natural order:
+```pica
+dp4 r5.x, modelView[0], r0
+dp4 r5.y, modelView[1], r0
+dp4 r5.z, modelView[2], r0
+dp4 r5.w, modelView[3], r0
+mov outview, r5.wzyx           ; swizzle reversed → natural (x,y,z,w)
+```
+
+**PICA200 ALU: constants must be src1, not src2**
+
+The PICA200 ALU restricts constant registers (`.constf` aliases) to the **first** source operand
+only. Placing a constant in the second source position (`src2`) is a hard assembler error:
+```pica
+; WRONG — assembler rejects "ones" in src2:
+add r3.x, r2.y, ones
+
+; CORRECT — swap operands (add/mul/max are commutative):
+add r3.x, ones, r2.y
+```
+
+**Two dp4 groups per destination, never chain through a temp**
+
+Two consecutive dp4 groups reading through an intermediate temp register give wrong results
+because the reversed component order in the temp corrupts the second group's inputs. The fix
+used throughout the lighting shader is one dp4 group per logical destination, each reading
+directly from the original vertex input registers (`r0`, `r1`), never from a temp filled by a
+previous dp4 group.
+
+**`Mtx_Scale` is broken — known bug, fix deferred to post-Phase 10**
+
+`Mtx_Scale` in `lib/c3d/math.odin` constructs its scale matrix in the reversed C3D flat-storage
+format. When `Mtx_Multiply` operates on it (which uses standard flat-array matrix multiplication),
+the result permutes matrix columns rather than scaling them. Applying `Mtx_Scale` after any
+translation/rotation destroys the translation, causing the object to orbit the camera origin
+rather than shrink in place.
+
+**Workaround used in `Lighting-Example`:** increase the z-translation distance instead of scaling.
+Moving the cube from `z = -3` to `z = -6` halves its projected size with no matrix math involved.
+
+```odin
+// Do NOT do this — Mtx_Scale is broken:
+// c3d.Mtx_Scale(&model, 0.5, 0.5, 0.5)
+
+// Workaround — move the object farther away instead:
+c3d.Mtx_Translate(&model, 0.0, 0.0, -6.0, true)
+```
+
+The root cause and a proper fix are tracked as a post-Phase 10 TODO.
 
 ---
 

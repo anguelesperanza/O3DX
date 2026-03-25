@@ -102,12 +102,22 @@ void c3d_light_spot_dir(C3D_Light* light, uint32_t x, uint32_t y, uint32_t z) {
     C3D_LightSpotDir(light, u2f(x), u2f(y), u2f(z));
 }
 
+// C3D_LightColor — static inline: sets diffuse + specular0 + specular1 together.
+void c3d_light_color(C3D_Light* light, uint32_t r, uint32_t g, uint32_t b) {
+    C3D_LightColor(light, u2f(r), u2f(g), u2f(b));
+}
+
 // ----------------------------------------------------------------
 // Light LUTs
 // ----------------------------------------------------------------
 
 void light_lut_from_array(C3D_LightLut* lut, float* data) {
     LightLut_FromArray(lut, data);
+}
+
+// LightLut_Phong — macro wrapper: LightLut_FromFunc(lut, powf, shininess, false).
+void light_lut_phong(C3D_LightLut* lut, uint32_t shininess) {
+    LightLut_Phong(lut, u2f(shininess));
 }
 
 void light_lut_from_func(C3D_LightLut* lut, C3D_LightLutFunc func,
@@ -165,6 +175,10 @@ void proc_tex_lut_from_array(C3D_ProcTexLut* lut, float* data) {
 // Uniform matrix upload — C3D_FVUnifMtx4x4/3x4/2x4 are static inline
 // in c3d/uniforms.h; they just call C3D_FVUnifMtxNx4 with a fixed count.
 // ----------------------------------------------------------------
+
+void c3d_fvunif_mtx_nx4(GPU_SHADER_TYPE type, int id, C3D_Mtx* mtx, int num) {
+    C3D_FVUnifMtxNx4(type, id, mtx, num);
+}
 
 void c3d_fvunif_mtx4x4(GPU_SHADER_TYPE type, int id, C3D_Mtx* mtx) {
     C3D_FVUnifMtx4x4(type, id, mtx);
