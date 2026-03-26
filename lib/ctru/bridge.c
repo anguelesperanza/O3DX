@@ -28,3 +28,56 @@ void irrst_init(void)                    { irrstInit(); }
 void irrst_exit(void)                    { irrstExit(); }
 void irrst_scan(void)                    { irrstScanInput(); }
 void cstick_read(circlePosition* pos)    { irrstCstickRead(pos); }
+
+// ----------------------------------------------------------------
+// ndsp — Nintendo DSP audio service.
+// These wrapper functions convert float arguments/return values
+// between soft-float (Odin) and hard-float (libctru) using the
+// u2f()/f2u() bit-cast macros from bridge_utils.h.
+// ----------------------------------------------------------------
+
+// Master volume
+void     ndsp_set_master_vol(uint32_t vol)       { ndspSetMasterVol(u2f(vol)); }
+uint32_t ndsp_get_master_vol(void)               { return f2u(ndspGetMasterVol()); }
+
+// Auxiliary output volume
+void     ndsp_aux_set_volume(int id, uint32_t v) { ndspAuxSetVolume(id, u2f(v)); }
+uint32_t ndsp_aux_get_volume(int id)             { return f2u(ndspAuxGetVolume(id)); }
+
+// Channel sample rate
+void     ndsp_chn_set_rate(int id, uint32_t r)   { ndspChnSetRate(id, u2f(r)); }
+uint32_t ndsp_chn_get_rate(int id)               { return f2u(ndspChnGetRate(id)); }
+
+// IIR monopole filters
+bool ndsp_chn_iir_mono_custom(int id, uint32_t a0, uint32_t a1, uint32_t b0) {
+    return ndspChnIirMonoSetParamsCustomFilter(id, u2f(a0), u2f(a1), u2f(b0));
+}
+bool ndsp_chn_iir_mono_lpf(int id, uint32_t f0) {
+    return ndspChnIirMonoSetParamsLowPassFilter(id, u2f(f0));
+}
+bool ndsp_chn_iir_mono_hpf(int id, uint32_t f0) {
+    return ndspChnIirMonoSetParamsHighPassFilter(id, u2f(f0));
+}
+
+// IIR biquad filters
+bool ndsp_chn_iir_biquad_custom(int id,
+        uint32_t a0, uint32_t a1, uint32_t a2,
+        uint32_t b0, uint32_t b1, uint32_t b2) {
+    return ndspChnIirBiquadSetParamsCustomFilter(
+        id, u2f(a0), u2f(a1), u2f(a2), u2f(b0), u2f(b1), u2f(b2));
+}
+bool ndsp_chn_iir_biquad_lpf(int id, uint32_t f0, uint32_t Q) {
+    return ndspChnIirBiquadSetParamsLowPassFilter(id, u2f(f0), u2f(Q));
+}
+bool ndsp_chn_iir_biquad_hpf(int id, uint32_t f0, uint32_t Q) {
+    return ndspChnIirBiquadSetParamsHighPassFilter(id, u2f(f0), u2f(Q));
+}
+bool ndsp_chn_iir_biquad_bpf(int id, uint32_t f0, uint32_t Q) {
+    return ndspChnIirBiquadSetParamsBandPassFilter(id, u2f(f0), u2f(Q));
+}
+bool ndsp_chn_iir_biquad_notch(int id, uint32_t f0, uint32_t Q) {
+    return ndspChnIirBiquadSetParamsNotchFilter(id, u2f(f0), u2f(Q));
+}
+bool ndsp_chn_iir_biquad_peq(int id, uint32_t f0, uint32_t Q, uint32_t gain) {
+    return ndspChnIirBiquadSetParamsPeakingEqualizer(id, u2f(f0), u2f(Q), u2f(gain));
+}

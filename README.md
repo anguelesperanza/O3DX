@@ -81,7 +81,9 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── DepthTest-Example/      ← Citro3D: depth test, PICA200 reverse-Z, GEQUAL convention ✅
 │   ├── AlphaBlend-Example/     ← Citro3D: src-alpha blending, back-to-front draw order ✅
 │   ├── SpinningCube-Example/   ← Citro3D: 3D perspective, model matrix, spinning cube ✅ (Phase 8)
-│   └── Lighting-Example/       ← Citro3D: PICA200 hardware lighting, normalquat, LightEnv/Light/LUT ✅ (Phase 9)
+│   ├── Lighting-Example/       ← Citro3D: PICA200 hardware lighting, normalquat, LightEnv/Light/LUT ✅ (Phase 9)
+│   ├── Audio-Example/          ← NDSP audio: WAV from romfs, looping playback, volume control ✅ (Phase 11)
+│   └── SaveData-Example/       ← FS service: read/write save struct to SD card ✅ (Phase 11)
 │
 └── tools/
     ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
@@ -139,13 +141,30 @@ Functions that only take integer or pointer arguments (the majority of libctru) 
 
 Static-inline C functions (e.g. `romfsInit`, `C2D_SceneBegin`, all sprite helpers) have no exported linker symbol, so they also require a bridge wrapper.
 
+### u64 argument alignment — a second ABI hazard
+
+The ARM32 AAPCS requires `u64` arguments to start at an **even-numbered register** (`r0`, `r2`, …).
+When a `u64` argument is preceded by an odd number of register-sized arguments, one register must
+be skipped as padding so the `u64` lands on an even boundary.
+
+Odin's `freestanding_arm32` target does **not** insert this padding, so any libctru function with
+a `u64` parameter in an "odd" position receives corrupted arguments at runtime — no compile-time
+warning is produced.
+
+**Rule of thumb:** a `u64` parameter is safe when it is either the first argument or when it is
+preceded by exactly two register-sized arguments (pointers or `u32`s). It is unsafe when it is
+preceded by exactly one register-sized argument.
+
+**Known affected functions in `lib/ctru/fs.odin`:** `FSUSER_OpenFile` and `FSFILE_SetSize`.
+See the SaveData-Example implementation notes in Phase 11 for the full analysis and workaround.
+
 ### The `lib/` shared packages
 
 Rather than duplicating bindings in every example, all declarations live in `lib/`:
 
 | Package | Import path | Contains |
 |---|---|---|
-| `ctru` | `../../lib/ctru` | gfx, input, APT, console, romfs, irrst |
+| `ctru` | `../../lib/ctru` | gfx, input, APT (full), console, romfs, irrst, SVC (full), NDSP audio, FS filesystem |
 | `c2d`  | `../../lib/c2d`  | All Citro2D types, drawing, tinting, view transforms |
 | `c3d`  | `../../lib/c3d`  | All Citro3D types, GPU enums, frame/texture/effect functions |
 
@@ -578,35 +597,124 @@ used throughout the lighting shader is one dp4 group per logical destination, ea
 directly from the original vertex input registers (`r0`, `r1`), never from a temp filled by a
 previous dp4 group.
 
-**`Mtx_Scale` is broken — known bug, fix deferred to post-Phase 10**
+**`Mtx_Scale` — fixed**
 
-`Mtx_Scale` in `lib/c3d/math.odin` constructs its scale matrix in the reversed C3D flat-storage
-format. When `Mtx_Multiply` operates on it (which uses standard flat-array matrix multiplication),
-the result permutes matrix columns rather than scaling them. Applying `Mtx_Scale` after any
-translation/rotation destroys the translation, causing the object to orbit the camera origin
-rather than shrink in place.
-
-**Workaround used in `Lighting-Example`:** increase the z-translation distance instead of scaling.
-Moving the cube from `z = -3` to `z = -6` halves its projected size with no matrix math involved.
+The original Odin implementation built a diagonal matrix and called `Mtx_Multiply`, but
+`Mtx_Multiply` operates on the reversed C3D flat-storage layout so the scale factors permuted
+columns instead of scaling them.  Fixed by routing through the C bridge (`mtx_scale` in
+`lib/c3d/bridge.c`), which calls citro3d's `Mtx_Scale` directly — it multiplies `r[i].x/y/z`
+in-place, bypassing the multiply entirely.
 
 ```odin
-// Do NOT do this — Mtx_Scale is broken:
-// c3d.Mtx_Scale(&model, 0.5, 0.5, 0.5)
-
-// Workaround — move the object farther away instead:
-c3d.Mtx_Translate(&model, 0.0, 0.0, -6.0, true)
+// Now works correctly:
+c3d.Mtx_Scale(&model, 0.5, 0.5, 0.5)
 ```
-
-The root cause and a proper fix are tracked as a post-Phase 10 TODO.
 
 ---
 
-### 🔲 Phase 10 — Full 3D scene
+### ✅ Phase 10 — Combining textures + lighting in one TexEnv chain
 
-A complete 3D scene using the full `lib/` package stack:
-- Textured spinning cube (combining Phase 6 textures + Phase 8 math)
-- Lighting applied (Phase 9)
-- Multiple objects with separate model matrices
+Rather than a separate example, here is the key pattern for combining a diffuse texture with
+per-vertex lighting in a single TexEnv stage.
+
+The goal: `fragment_color = texture_color × lighting_color`.
+
+**TexEnv stage 0 — modulate texture by primary color (lit vertex color):**
+
+```odin
+env := c3d.C3D_GetTexEnv(0)
+c3d.C3D_TexEnvInit(env)
+// Source: texture for RGB, primary (lit) color for alpha
+c3d.C3D_TexEnvSrc(env, c3d.C3D_RGB,   .TEXTURE0, .PRIMARY_COLOR, .PRIMARY_COLOR)
+c3d.C3D_TexEnvSrc(env, c3d.C3D_Alpha, .PRIMARY_COLOR, .PRIMARY_COLOR, .PRIMARY_COLOR)
+// MODULATE multiplies src0 × src1 — texture × lighting
+c3d.C3D_TexEnvFunc(env, c3d.C3D_RGB,   .MODULATE)
+c3d.C3D_TexEnvFunc(env, c3d.C3D_Alpha, .REPLACE)
+```
+
+**Vertex shader:** output both `texcoord0` and `color0`.  The lighting system writes its result
+into the fragment's primary color, which the TexEnv stage then multiplies against the texture
+sample.
+
+**Why PRIMARY_COLOR carries the light result:** `C3D_LightEnvBind` causes the GPU's fragment
+pipeline to compute diffuse + specular into the fragment primary color before TexEnv runs.
+TEXTURE0 is the bound diffuse texture.  `MODULATE` on `.RGB` produces the lit, textured color.
+
+**Alpha:** use `REPLACE` on the alpha channel sourced from `PRIMARY_COLOR` (the material alpha)
+unless the texture has its own meaningful alpha, in which case source from `TEXTURE0` with
+`MODULATE` for both channels.
+
+---
+
+### ✅ Phase 11 — libctru service bindings + Audio and SaveData examples
+
+Four new files added to `lib/ctru/`:
+
+| File | Contents |
+|---|---|
+| `svc.odin` | Full kernel syscall bindings from `3ds/svc.h` — threads, mutexes, events, timers, memory, IPC |
+| `apt.odin` | Full APT service bindings — home button hooks, sleep, chainloader, N3DS CPU time limit |
+| `ndsp.odin` | Full NDSP audio bindings — channel setup, wave buffers, mix, interpolation, IIR filters |
+| `fs.odin` | Full FS filesystem bindings — SDMC/romfs archives, file and directory operations |
+
+NDSP functions that take scalar `float` parameters use the hard-float ABI (values in VFP registers). These are wrapped in `lib/ctru/bridge.c` using the same `u2f`/`f2u` pattern as the Citro2D/3D bridges. Functions that take float arrays by pointer (e.g. `ndspChnSetMix`) are safe to call directly.
+
+**Audio-Example** — demonstrates NDSP end-to-end:
+- Parses `romfs:/audio.wav` (uncompressed PCM, 8 or 16 bit, mono or stereo) using C stdio (`fopen`/`fread`) after `romfsInit()`
+- Allocates a `linearAlloc` buffer for DMA-safe audio data
+- Configures NDSP channel 0 with a single looping `ndspWaveBuf`
+- Live console display: status, volume, sample position
+- Controls: `A` pause/resume · `Up/Down` volume ±5% · `Start` exit
+
+> **⚠️ Citra DSP note:** `ndspInit` will fail on Citra regardless of DSP mode (HLE or LLE Accurate).
+> Citra's DSP emulation does not fully support the NDSP initialization sequence used by libctru.
+> The example prints a warning and continues so the UI is visible in Citra, but **audio only works
+> on real hardware.** On real hardware, dump your DSP firmware once with the **dsp1** homebrew app
+> — it saves `dspfirm.cdc` to `sdmc:/3ds/dspfirm.cdc`, which libctru finds automatically on every
+> subsequent `ndspInit` call. No rebuild required.
+
+**SaveData-Example** — persistent save data on the SD card:
+- Reads/writes a `SaveData{magic, play_count, high_score, checksum}` struct to `sdmc:/3ds/SaveData-Example/save.bin`
+- Increments `play_count` on every launch; starts fresh on first run or bad checksum
+- Controls: `A` high score +10 and save · `Start` final save and exit
+
+#### SaveData-Example implementation notes
+
+**ARM32 u64 register-alignment bug in Odin → FS service calls**
+
+The ARM32 AAPCS (Procedure Call Standard) requires that a `u64` argument be placed starting
+at an **even-numbered register** (`r0`, `r2`, …). If the preceding arguments have consumed an
+odd number of registers, the next register is skipped (wasted as padding) so the `u64` lands
+on an even boundary.
+
+Odin's `freestanding_arm32` target does **not** insert this padding register, so any foreign C
+function with a `u64` parameter preceded by an odd number of register-sized arguments receives
+corrupted data.
+
+The two FS service functions affected are:
+
+| Function | Problem |
+|---|---|
+| `FSUSER_OpenFile(file: ^Handle, archive: FS_Archive, ...)` | `^Handle` occupies r0 → NCRN=1 (odd). `FS_Archive` (u64) should skip to r2:r3, but Odin places it in r1:r2. libctru reads the archive handle from the wrong registers → all file opens fail. |
+| `FSFILE_SetSize(handle: Handle, size: u64)` | `Handle` (u32) occupies r0 → NCRN=1 (odd). `size` (u64) should skip to r2:r3, but Odin places it in r1:r2. libctru reads size=0 → file stays at zero bytes → subsequent write fails. |
+
+Functions where the `u64` lands on an even boundary are **not** affected:
+
+| Function | Why it's safe |
+|---|---|
+| `FSUSER_OpenArchive(archive: ^FS_Archive, id: FS_ArchiveID, ...)` | No u64 by value — archive is an output pointer. |
+| `FSUSER_CreateFile(archive: FS_Archive, ...)` | `FS_Archive` is the **first** arg → NCRN=0 (even) → r0:r1. ✓ |
+| `FSUSER_CreateDirectory`, `FSUSER_DeleteFile`, `FSUSER_CloseArchive` | Same — `FS_Archive` is always the first argument. ✓ |
+| `FSFILE_Write(handle, bytesWritten, offset: u64, ...)` | Two register args before `offset` → NCRN=2 (even) → r2:r3. ✓ |
+| `FSFILE_Read(handle, bytesRead, offset: u64, ...)` | Same. ✓ |
+
+**Workaround:** use C stdio (`fopen` / `fwrite` / `fread` from newlib) for all actual file I/O,
+and `mkdir` (also from newlib) for directory creation. Newlib routes these through the FS service
+internally with a correct calling convention. `FSUSER_OpenArchive` + `FSUSER_CreateDirectory`
+remain usable from Odin since `FS_Archive` is always their first argument.
+
+This pattern is identical to how Audio-Example loads WAV data from romfs — C stdio is the
+proven, safe path for file I/O from Odin on 3DS.
 
 ---
 

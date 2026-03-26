@@ -157,6 +157,29 @@ void c3d_gas_light_view(uint32_t min, uint32_t max, uint32_t delta) {
 // Procedural texture
 // ----------------------------------------------------------------
 
+void c3d_proc_tex_clamp(C3D_ProcTex* pt,
+                        GPU_PROCTEX_CLAMP u, GPU_PROCTEX_CLAMP v) {
+    C3D_ProcTexClamp(pt, u, v);
+}
+
+void c3d_proc_tex_combiner(C3D_ProcTex* pt, bool separate,
+                            GPU_PROCTEX_MAPFUNC rgb, GPU_PROCTEX_MAPFUNC alpha) {
+    C3D_ProcTexCombiner(pt, separate, rgb, alpha);
+}
+
+void c3d_proc_tex_noise_enable(C3D_ProcTex* pt, bool enable) {
+    C3D_ProcTexNoiseEnable(pt, enable);
+}
+
+void c3d_proc_tex_shift(C3D_ProcTex* pt,
+                        GPU_PROCTEX_SHIFT u, GPU_PROCTEX_SHIFT v) {
+    C3D_ProcTexShift(pt, u, v);
+}
+
+void c3d_proc_tex_filter(C3D_ProcTex* pt, GPU_PROCTEX_FILTER min_filt) {
+    C3D_ProcTexFilter(pt, min_filt);
+}
+
 void c3d_proc_tex_noise_coefs(C3D_ProcTex* pt, int coord,
                                uint32_t amplitude, uint32_t frequency,
                                uint32_t phase) {

@@ -595,3 +595,70 @@ GPU_PROCTEX_LUTID :: enum u32 {
     COLOR  = 4,
     COLOR_DIFF = 5,
 }
+
+// Texture unit selector (bitmask — combine with | for multiple units)
+// Used with C3D_LightEnvShadowSel and raw GPU command buffer writes.
+GPU_TEXUNIT :: enum u32 {
+    TEXUNIT0 = 0x1,
+    TEXUNIT1 = 0x2,
+    TEXUNIT2 = 0x4,
+}
+
+// Light LUT output scale factor
+// Source: GPU/enums.h GPU_LIGHTLUTSCALER
+GPU_LIGHTLUTSCALER :: enum u32 {
+    LUTSCALER_1x    = 0,
+    LUTSCALER_2x    = 1,
+    LUTSCALER_4x    = 2,
+    LUTSCALER_8x    = 3,
+    LUTSCALER_0_25x = 6,
+    LUTSCALER_0_5x  = 7,
+}
+
+// Light LUT bank selector
+// Source: GPU/enums.h GPU_LIGHTLUTSELECT
+GPU_LIGHTLUTSELECT :: enum u32 {
+    LUTSELECT_COMMON = 0, // LUTs common to all lights (D0, D1, FR, RB, RG, RR)
+    LUTSELECT_SP     = 1, // Spotlight LUT
+    LUTSELECT_DA     = 2, // Distance attenuation LUT
+}
+
+// Procedural texture UV clamp mode
+GPU_PROCTEX_CLAMP :: enum u32 {
+    CLAMP_TO_ZERO   = 0,
+    CLAMP_TO_EDGE   = 1,
+    REPEAT          = 2,
+    MIRRORED_REPEAT = 3,
+    PULSE           = 4,
+}
+
+// Procedural texture map function (scalar combiner)
+GPU_PROCTEX_MAPFUNC :: enum u32 {
+    U     = 0,
+    U2    = 1,
+    V     = 2,
+    V2    = 3,
+    ADD   = 4,
+    ADD2  = 5,
+    SQRT2 = 6,
+    MIN   = 7,
+    MAX   = 8,
+    RMAX  = 9,
+}
+
+// Procedural texture noise shift mode
+GPU_PROCTEX_SHIFT :: enum u32 {
+    NONE = 0,
+    ODD  = 1,
+    EVEN = 2,
+}
+
+// Procedural texture filter
+GPU_PROCTEX_FILTER :: enum u32 {
+    NEAREST              = 0,
+    LINEAR               = 1,
+    NEAREST_MIP_NEAREST  = 2,
+    LINEAR_MIP_NEAREST   = 3,
+    NEAREST_MIP_LINEAR   = 4,
+    LINEAR_MIP_LINEAR    = 5,
+}

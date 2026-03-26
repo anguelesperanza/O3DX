@@ -285,6 +285,22 @@ foreign c3d_bridge {
     @(link_name = "light_lut_da_create")
     LightLutDA_Create :: proc(lut: ^C3D_LightLutDA, func: rawptr, from_, to, arg0, arg1: f32) ---
 
+    // --- Proc tex (integer / bool params bridged for the static inline setters) ---
+    @(link_name = "c3d_proc_tex_clamp")
+    C3D_ProcTexClamp :: proc(pt: ^C3D_ProcTex, u, v: GPU_PROCTEX_CLAMP) ---
+
+    @(link_name = "c3d_proc_tex_combiner")
+    C3D_ProcTexCombiner :: proc(pt: ^C3D_ProcTex, separate: bool, rgb, alpha: GPU_PROCTEX_MAPFUNC) ---
+
+    @(link_name = "c3d_proc_tex_noise_enable")
+    C3D_ProcTexNoiseEnable :: proc(pt: ^C3D_ProcTex, enable: bool) ---
+
+    @(link_name = "c3d_proc_tex_shift")
+    C3D_ProcTexShift :: proc(pt: ^C3D_ProcTex, u, v: GPU_PROCTEX_SHIFT) ---
+
+    @(link_name = "c3d_proc_tex_filter")
+    C3D_ProcTexFilter :: proc(pt: ^C3D_ProcTex, min_filt: GPU_PROCTEX_FILTER) ---
+
     // --- Proc tex (float params) ---
     @(link_name = "c3d_proc_tex_noise_coefs")
     C3D_ProcTexNoiseCoefs :: proc(pt: ^C3D_ProcTex, coord: i32, amplitude, frequency, phase: f32) --- // coord: C3D_ProcTexCoord cast to i32

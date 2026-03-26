@@ -405,18 +405,16 @@ _mtx_apply :: #force_inline proc "contextless" (mtx, t: ^C3D_Mtx, bRightSide: bo
     mtx^ = tmp
 }
 
-// Mtx_Scale — multiply all columns of the matrix by (x, y, z).
-// Equivalent to: out = out * Scale(x, y, z).
-// Scale matrix logical rows:
-//   Row 0: {lx=sx, 0, 0, 0}   Row 1: {0, sy, 0, 0}
-//   Row 2: {0, 0, sz, 0}       Row 3: {0, 0, 0, 1}
-Mtx_Scale :: proc "contextless" (mtx: ^C3D_Mtx, x, y, z: f32) {
-    s: C3D_Mtx
-    s.r[0] = C3D_FVec{ x = 0, y = 0, z = 0, w = x }
-    s.r[1] = C3D_FVec{ x = 0, y = 0, z = y, w = 0 }
-    s.r[2] = C3D_FVec{ x = 0, y = z, z = 0, w = 0 }
-    s.r[3] = C3D_FVec{ x = 1, y = 0, z = 0, w = 0 }
-    _mtx_apply(mtx, &s, true)
+// Mtx_Scale — multiply each column of the matrix by (x, y, z).
+// Equivalent to: out = out * diag(x, y, z, 1).
+//
+// Routed through the C bridge (mtx_scale in bridge.c → citro3d Mtx_Scale).
+// The native Odin implementation built a diagonal matrix and called
+// Mtx_Multiply, but Mtx_Multiply operates on the reversed C3D flat-storage
+// layout, so the scale factors ended up permuting columns instead of scaling
+// them.  The C citro3d Mtx_Scale correctly multiplies r[i].x/y/z directly.
+Mtx_Scale :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, x, y, z: f32) {
+    _Mtx_Scale_bridge(mtx, x, y, z)
 }
 
 // Mtx_Translate — apply translation (tx, ty, tz) to matrix.
@@ -514,6 +512,10 @@ foreign c3d_bridge {
     _Mtx_LookAt_bridge :: proc(out: ^C3D_Mtx,
                                pos, target, up: ^C3D_FVec,
                                isLeftHanded: bool) ---
+
+    // ── Scale (direct column multiply — float params via soft-float bits) ───
+    @(link_name = "mtx_scale")
+    _Mtx_Scale_bridge :: proc(mtx: ^C3D_Mtx, x, y, z: f32) ---
 
     // ── Rotate by cardinal axes (float angle via soft-float bits) ───
     @(link_name = "mtx_rotate_x")
