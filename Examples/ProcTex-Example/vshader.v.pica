@@ -1,0 +1,33 @@
+; ProcTex-Example vertex shader
+; Inputs:  v0 = position (xyz), v1 = texcoord (uv)
+; Outputs: position, texcoord0
+; Uniforms: mvp[4] — model-view-projection matrix
+
+.fvec mvp[4]
+
+; Constant holding 1.0 in x for homogeneous w
+.constf myconst(1.0, 0.0, 0.0, 0.0)
+.alias ones myconst.xxxx
+
+.out outpos position
+.out outtc0 texcoord0
+
+.alias inpos v0
+.alias inuv  v1
+
+.proc main
+    ; Build homogeneous position: r0 = (inpos.xyz, 1.0)
+    mov r0.xyz, inpos
+    mov r0.w, ones.x
+
+    ; Transform by MVP
+    dp4 outpos.x, mvp[0], r0
+    dp4 outpos.y, mvp[1], r0
+    dp4 outpos.z, mvp[2], r0
+    dp4 outpos.w, mvp[3], r0
+
+    ; Pass UV through
+    mov outtc0.xy, inuv.xy
+
+    end
+.end

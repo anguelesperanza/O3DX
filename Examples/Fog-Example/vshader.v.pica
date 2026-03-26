@@ -1,0 +1,39 @@
+; vshader.v.pica — Fog-Example vertex shader.
+;
+; Fog is a pure fragment-stage effect on the PICA200; the vertex shader
+; only needs to output clip-space position.  Colour passes through unchanged.
+;
+; Uniform:  mvp[4]  — combined projection × model matrix
+;
+; Inputs (permutation 0x10):
+;   v0 — position (x, y, z)    — 3 floats; w forced to 1.0 below
+;   v1 — colour   (r, g, b, a) — 4 floats; passed through unchanged
+;
+; Outputs:
+;   out0 — clip-space position
+;   out1 — primary vertex colour (pass-through)
+
+.fvec mvp[4]
+
+.constf myconst(0.0, 1.0, 0.0, 0.0)
+.alias ones myconst.yyyy
+
+.alias vtxpos v0
+.alias vtxclr v1
+
+.out out0 position
+.out out1 color
+
+.proc main
+    mov r0,   vtxpos
+    mov r0.w, ones
+
+    dp4 out0.x, mvp[0], r0
+    dp4 out0.y, mvp[1], r0
+    dp4 out0.z, mvp[2], r0
+    dp4 out0.w, mvp[3], r0
+
+    mov out1, vtxclr
+
+    end
+.end

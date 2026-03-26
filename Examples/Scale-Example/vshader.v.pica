@@ -1,0 +1,29 @@
+; Scale-Example vertex shader
+; Inputs:  v0 = position (xyz), v1 = colour (rgba)
+; Outputs: position, colour
+; Uniforms: mvp[4]
+
+.fvec mvp[4]
+
+.constf myconst(1.0, 0.0, 0.0, 0.0)
+.alias ones myconst.xxxx
+
+.out outpos position
+.out outclr color
+
+.alias inpos v0
+.alias inclr v1
+
+.proc main
+    mov r0.xyz, inpos
+    mov r0.w, ones.x
+
+    dp4 outpos.x, mvp[0], r0
+    dp4 outpos.y, mvp[1], r0
+    dp4 outpos.z, mvp[2], r0
+    dp4 outpos.w, mvp[3], r0
+
+    mov outclr, inclr
+
+    end
+.end
