@@ -1,17 +1,17 @@
-# 3DS Odin
+# O3DX
 
-A repository showing how to use the Odin programming language to develop for the Nintendo 3DS, with complete bindings for Citro2D and Citro3D.
+**O**din + **3D**S + **.3dx** — Nintendo 3DS homebrew development in Odin. Bindings, examples, tools, and a project template to get started fast.
 
-Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and proof-of-concept.
+Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and proof-of-concept that this project builds on.
 
 ---
 
 ## What this repository does
 
-This repository explores how far Odin can be pushed for 3DS homebrew development.
+O3DX explores how far Odin can be pushed for 3DS homebrew development.
 The original code from Ske is preserved under `POC-Example/`.
 
-AI is used in this development to help bridge knowledge gaps, work through bugs, and generate bindings.
+This project is an experiment in using AI (Claude) as a long-term collaborator on a non-trivial engineering project — writing bindings, debugging ABI issues, designing tools, building a full game, and maintaining documentation across many sessions. Claude acted as a pair programmer: researching the 3DS hardware and library internals, diagnosing bugs through binary analysis, writing and refactoring code, and authoring docs — while the human drove direction, tested on real hardware, and made final calls.
 
 Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 
@@ -546,11 +546,11 @@ With `Mtx_PerspTilt(fovy=60°, aspect=400/240, near=0.01, far=100, isLeftHanded=
 
 ---
 
-### 🔄 Phase 9 — Citro3D lighting, fog, proctex  ← **IN PROGRESS**
+### ✅ Phase 9 — Citro3D lighting, fog, proctex
 
 - ✅ `C3D_LightEnv*`, `C3D_Light*` — hardware lighting environment, material, LUTs (`Lighting-Example`)
-- 🔲 `FogLut_Exp`, `C3D_FogGasMode` — distance fog
-- 🔲 `C3D_ProcTex*`, `ProcTexLut_*` — procedural texture generation
+- ✅ `FogLut_Exp`, `C3D_FogGasMode` — distance fog
+- ✅ `C3D_ProcTex*`, `ProcTexLut_*` — procedural texture generation
 
 #### Phase 9 implementation notes — Lighting-Example
 
