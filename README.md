@@ -83,11 +83,18 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── SpinningCube-Example/   ← Citro3D: 3D perspective, model matrix, spinning cube ✅ (Phase 8)
 │   ├── Lighting-Example/       ← Citro3D: PICA200 hardware lighting, normalquat, LightEnv/Light/LUT ✅ (Phase 9)
 │   ├── Audio-Example/          ← NDSP audio: WAV from romfs, looping playback, volume control ✅ (Phase 11)
-│   └── SaveData-Example/       ← FS service: read/write save struct to SD card ✅ (Phase 11)
+│   ├── SaveData-Example/       ← FS service: read/write save struct to SD card ✅ (Phase 11)
+│   └── Games/
+│       └── FlappyClone/        ← Full 2D game: sprites, animation, physics, audio, parallax, save data ✅
 │
-└── tools/
-    ├── png2t3x.exe             ← Drop-in tex3ds replacement: PNG/JPEG → .t3x, atlas support, .t3s include files
-    └── png2t3x.odin            ← Source for the converter
+├── tools/
+│   ├── tritex.odin             ← PNG/JPEG → .t3x converter (renamed from png2t3x); atlas + .t3s support
+│   ├── tritex.exe              ← Compiled binary (build with: odin build tools/tritex.odin -file -out:tools/tritex.exe)
+│   ├── howto.md                ← tritex usage reference
+│   └── mp3towav/               ← MP3 → WAV converter (uses vendor:miniaudio)
+│       └── mp3towav.odin
+│
+└── docs.md                     ← Full developer reference: bindings, nuances, gotchas
 ```
 
 ---
@@ -164,19 +171,27 @@ Rather than duplicating bindings in every example, all declarations live in `lib
 
 | Package | Import path | Contains |
 |---|---|---|
-| `ctru` | `../../lib/ctru` | gfx, input, APT (full), console, romfs, irrst, SVC (full), NDSP audio, FS filesystem |
-| `c2d`  | `../../lib/c2d`  | All Citro2D types, drawing, tinting, view transforms |
-| `c3d`  | `../../lib/c3d`  | All Citro3D types, GPU enums, frame/texture/effect functions |
+| `ctru`  | `../../lib/ctru`  | gfx, input, APT (full), console, romfs, irrst, SVC (full), NDSP audio, FS filesystem |
+| `c2d`   | `../../lib/c2d`   | All Citro2D types, drawing, tinting, view transforms |
+| `c3d`   | `../../lib/c3d`   | All Citro3D types, GPU enums, frame/texture/effect functions |
+| `audio` | `../../lib/audio` | WAV loading (`linearAlloc`-backed) and NDSP clip playback helpers |
 
 Example usage:
 ```odin
-import ctru "../../lib/ctru"
-import c2d  "../../lib/c2d"
-import c3d  "../../lib/c3d"
+import ctru  "../../lib/ctru"
+import c2d   "../../lib/c2d"
+import c3d   "../../lib/c3d"
+import audio "../../lib/audio"
 
 top := c2d.C2D_CreateScreenTarget(ctru.GFX_TOP, ctru.GFX_LEFT)
 c2d.C2D_DrawRectSolid(10, 10, 0, 80, 60, c2d.C2D_Color32(0xFF, 0, 0, 0xFF))
 ```
+
+> **Short-form aliases:** Every `C2D_`- and `C3D_`-prefixed function, type, and constant has a
+> shorter alias in its package that drops the prefix — so `c2d.C2D_DrawSprite` can be written
+> as `c2d.DrawSprite`, and `c3d.C3D_Init` as `c3d.Init`. The examples in this repository were
+> written before the aliases existed and use the full prefixed names throughout. Both styles
+> compile identically; new code should prefer the short form. See `docs.md` for the full list.
 
 Each example's `build.bat` compiles the three bridge objects (`ctru_bridge.o`, `c2d_bridge.o`, `c3d_bridge.o`) from the shared `lib/` directory and links them alongside the Odin assembly.
 
@@ -274,11 +289,11 @@ Examples created: `SpriteSheet-Example`, `CustomFont-Example`
 
 > **Note on `.t3x` files:** `C2D_SpriteSheetLoad` calls `Tex3DS_TextureImportStdio` internally and
 > requires a `.t3x` file in the standard Tex3DS binary format. The DevKitPro `tex3ds` tool has a
-> known bug on Windows that produces corrupt output. `tools/png2t3x.exe` is a drop-in replacement
-> that writes the correct format and supports single images, texture atlases (`-a`), and `.t3s`
-> include files (`-i`). All image-loading examples use `Tex3DS_TextureImportStdio` in their
-> `main.c`, and `SpriteSheet-Example` uses the full `C2D_SpriteSheetLoad` → `C2D_SpriteFromSheet`
-> pipeline end-to-end.
+> known bug on Windows that produces corrupt output. `tools/tritex.exe` (formerly `png2t3x`) is a
+> drop-in replacement that writes the correct format and supports single images, texture atlases
+> (`-a`), and `.t3s` include files (`-i`). All image-loading examples use
+> `Tex3DS_TextureImportStdio` in their `main.c`, and `SpriteSheet-Example` uses the full
+> `C2D_SpriteSheetLoad` → `C2D_SpriteFromSheet` pipeline end-to-end.
 
 ---
 
@@ -351,7 +366,7 @@ row-major.  The interleaving formula for a pixel at `(px, py)` within a tile:
 morton = (px&1) | ((py&1)<<1) | ((px&2)<<1) | ((py&2)<<2) | ((px&4)<<2) | ((py&4)<<3)
 ```
 
-The same algorithm is used in `tools/png2t3x.odin` for converting PNG files.
+The same algorithm is used in `tools/tritex.odin` for converting PNG files.
 
 **ABGR byte order**
 
@@ -721,26 +736,32 @@ proven, safe path for file I/O from Odin on 3DS.
 
 ## Tools
 
-### `tools/png2t3x.exe`
+### `tools/tritex.exe` (formerly `png2t3x`)
 
-A drop-in replacement for the official `tex3ds` tool. Converts PNG/JPEG images to `.t3x` files in the standard Tex3DS binary format, compatible with `Tex3DS_TextureImportStdio`, `C2D_SpriteSheetLoad`, and `C2D_SpriteSheetLoadFromHandle`.
+A drop-in replacement for the official `tex3ds` tool. Converts PNG/JPEG images to `.t3x` files
+in the standard Tex3DS binary format, compatible with `Tex3DS_TextureImportStdio`,
+`C2D_SpriteSheetLoad`, and `C2D_SpriteSheetLoadFromHandle`.
 
-The official `tex3ds` tool has a known bug on Windows that produces corrupt output; this tool is a working replacement. Built from `tools/png2t3x.odin` using the Odin compiler.
+The official `tex3ds` tool has a known bug on Windows that produces corrupt output due to an
+ImageMagick dependency issue; tritex is a self-contained replacement with no external
+dependencies. Built from `tools/tritex.odin` using the Odin compiler.
+
+See `tools/howto.md` for the full usage reference.
 
 **Usage**
 
 ```
-# Single image (legacy positional form — backward compatible)
-png2t3x input.png output.t3x
+# Single image
+tritex input.png output.t3x
 
 # Single image with flags
-png2t3x -o output.t3x input.png
+tritex -o output.t3x input.png
 
-# Texture atlas: pack multiple images into one .t3x
-png2t3x -a -o atlas.t3x sprite1.png sprite2.png sprite3.png
+# Texture atlas: pack multiple images into one .t3x (multi-frame sprite sheet)
+tritex -a -o atlas.t3x sprite0.png sprite1.png sprite2.png
 
 # Texture atlas via .t3s include file (matches tex3ds -i usage exactly)
-png2t3x -a -o atlas.t3x -i sprites.t3s
+tritex -a -o atlas.t3x -i sprites.t3s
 ```
 
 **Supported flags**
@@ -758,7 +779,8 @@ png2t3x -a -o atlas.t3x -i sprites.t3s
 
 **`.t3s` include file format**
 
-Plain-text, whitespace-tokenised. Flags and filenames can be mixed freely on any line. Comments start with `#`. Paths are resolved relative to the `.t3s` file's directory.
+Plain-text, whitespace-tokenised. Flags and filenames can be mixed freely on any line.
+Comments start with `#`. Paths are resolved relative to the `.t3s` file's directory.
 
 ```
 # sprites.t3s
@@ -772,26 +794,97 @@ sprite_run.png
 Typical invocation mirroring the real tex3ds workflow:
 
 ```bat
-png2t3x -a -o romfs/sprites.t3x -i assets/sprites.t3s
+tritex -a -o romfs/sprites.t3x -i assets/sprites.t3s
 ```
 
 **What the output contains**
 - Header starts with `u16 numSubTextures` (no magic bytes)
 - `texture_params` byte: `log2(w)−3` in bits `[2:0]`, `log2(h)−3` in bits `[5:3]`
 - One 12-byte sub-texture UV entry per input image (written in input order)
-- Sub-texture UVs are Y-flipped: `uv_top = (ch−y)×1024/ch`, `uv_bottom = (ch−y−h)×1024/ch`
+- Sub-texture UVs: `uv_top = 1.0`, `uv_bottom = 0.0` for a full-size image (no Y-flip)
 - Canvas dimensions are the smallest power-of-two ≥ 8 that fits all images (up to 1024×1024)
 - Shelf-packing algorithm: images sorted by height descending, packed left-to-right in rows
-- Pixels: ABGR8 byte order, Morton (Z-curve) swizzled in 8×8 tiles, Y-flipped
+- Pixels: ABGR8 byte order, Morton (Z-curve) swizzled in 8×8 tiles
 - 4-byte BIOS compression header with type `0x00` (no compression)
+- Output verified byte-for-byte identical to `tex3ds -z none` on Linux
 
 **Rebuilding**
 
 ```bat
-odin build tools/png2t3x.odin -file -out:tools/png2t3x.exe
+odin build tools/tritex.odin -file -out:tools/tritex.exe
 ```
 
-All image-based examples' `build.bat` files invoke this automatically before the build step.
+All image-based examples' `build.bat` files invoke tritex automatically before the build step.
+Folders containing a `.t3s` file are handled in atlas mode; individual PNGs without a `.t3s`
+are converted one-to-one.
+
+---
+
+### `tools/mp3towav/`
+
+Converts MP3 files to WAV (PCM16) using Odin's `vendor:miniaudio` bindings.
+Purpose-built for preparing audio for 3DS NDSP playback, which requires uncompressed PCM.
+
+**Usage**
+
+```bat
+mp3towav input.mp3 output.wav
+```
+
+Outputs 44100 Hz, mono, 16-bit PCM by default — the format expected by NDSP with
+`NDSP_FORMAT_MONO_PCM16`. miniaudio handles all decoding and resampling internally.
+
+**Rebuilding**
+
+```bat
+odin build tools/mp3towav -out:tools/mp3towav.exe
+```
+
+---
+
+---
+
+## Games
+
+### FlappyClone (`Examples/Games/FlappyClone/`)
+
+A complete Flappy Bird clone demonstrating every major system in the binding library working
+together in a real game.
+
+**Features**
+- Animated sprite sheet player (4-frame wing flap via `C2D_SpriteSheetLoad` + `C2D_SpriteFromSheet`)
+- Velocity-based physics (`velocity_y += gravity`, `y += velocity_y`) with floor/ceiling clamping
+- Procedurally placed pipe pairs recycled as they scroll off screen
+- AABB collision detection with per-pixel-snapped hitboxes
+- Parallax scrolling background (3 tiled copies, sub-pixel seam-free)
+- Score tracking with pipe-pass detection
+- Persistent high score saved to `sdmc:/3ds/FlappyClone/highscore.dat`
+- Coin sound effect via NDSP (`lib/audio` — `linearAlloc`-backed WAV)
+- Three-state game loop: `MainMenu → Playing → Dead` with labeled-break exit
+- Bottom screen UI: live score/best HUD during play; animated game-over/main-menu with d-pad cursor
+- SMDH metadata with custom icon
+
+**Key implementation lessons documented in `docs.md`:**
+- Sub-pixel jitter fix: `cast(f32)cast(i32)` before every `SpriteSetPos` call
+- Parallax tile count formula: `int(SCREEN_W / img_w) + 2`
+- Animation timer pattern: `frame_timer` counter + `frame_delay` threshold
+- Velocity physics vs fixed-offset movement
+- `consoleInit` vs citro2d screen ownership conflict
+- `break game_loop` labeled break to exit a `for` from inside a `switch`
+
+**Asset pipeline**
+
+```bat
+:: Bird animation — 4 frames packed into one atlas via .t3s
+tritex -a -o romfs\gfx\bird.t3x -i assets\images\bird\bird.t3s
+
+:: Pipe and background — individual images
+tritex assets\images\pipe\pipe.png romfs\gfx\pipe.t3x
+tritex assets\images\Background4.png romfs\gfx\Background4.t3x
+
+:: Audio — WAV copied directly to romfs
+xcopy /y assets\audio\*.wav romfs\audio\
+```
 
 ---
 

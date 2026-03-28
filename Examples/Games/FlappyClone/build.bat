@@ -74,15 +74,33 @@ for /r %IMAGES% %%f in (*.png *.jpg *.jpeg) do (
 )
 if "%IMG_FOUND%"=="0" echo  - No standalone images found, skipping pass 2.
 :: -------------------------------
-:: Copy audio files → romfs\audio
+:: Convert MP3 → WAV
+:: NDSP requires uncompressed PCM; MP3 cannot be played directly.
+:: Converted WAVs are written back into assets\audio alongside the originals.
+:: -------------------------------
+echo.
+echo Converting MP3 audio...
+set MP3_FOUND=0
+for /r %AUDIO% %%f in (*.mp3) do set MP3_FOUND=1
+if "%MP3_FOUND%"=="1" (
+    for /r %AUDIO% %%f in (*.mp3) do (
+        echo  - %%f
+        mp3towav "%%f" "%AUDIO%\%%~nf.wav"
+        if errorlevel 1 goto :fail
+    )
+) else (
+    echo  - No MP3 files found, skipping.
+)
+:: -------------------------------
+:: Copy audio files → romfs\audio  (WAV and OGG only — MP3 excluded)
 :: -------------------------------
 echo.
 echo Copying audio...
 set AUDIO_FOUND=0
-for /r %AUDIO% %%f in (*.wav *.ogg *.mp3) do set AUDIO_FOUND=1
+for /r %AUDIO% %%f in (*.wav *.ogg) do set AUDIO_FOUND=1
 if "%AUDIO_FOUND%"=="1" (
     if not exist %AUDIOOUT% mkdir %AUDIOOUT%
-    for /r %AUDIO% %%f in (*.wav *.ogg *.mp3) do (
+    for /r %AUDIO% %%f in (*.wav *.ogg) do (
         echo  - %%f
         copy /Y "%%f" "%AUDIOOUT%\%%~nxf" >nul
         if errorlevel 1 goto :fail

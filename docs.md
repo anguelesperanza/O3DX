@@ -8,17 +8,18 @@ Covers every binding package, their nuances, and the hard-won lessons from shipp
 ## Table of Contents
 
 1. [Project Structure](#project-structure)
-2. [Screen Dimensions](#screen-dimensions)
-3. [The Soft-Float ABI Bridge — the most important nuance](#the-soft-float-abi-bridge)
-4. [Package: ctru](#package-ctru)
-5. [Package: c3d](#package-c3d)
-6. [Package: c2d](#package-c2d)
-7. [Package: audio](#package-audio)
-8. [Memory — linearAlloc vs heap](#memory--linearalloc-vs-heap)
-9. [File I/O — romfs and sdmc](#file-io--romfs-and-sdmc)
-10. [Input](#input)
-11. [Build System](#build-system)
-12. [Common Gotchas](#common-gotchas)
+2. [Starting a New Project](#starting-a-new-project)
+3. [Screen Dimensions](#screen-dimensions)
+4. [The Soft-Float ABI Bridge — the most important nuance](#the-soft-float-abi-bridge)
+5. [Package: ctru](#package-ctru)
+6. [Package: c3d](#package-c3d)
+7. [Package: c2d](#package-c2d)
+8. [Package: audio](#package-audio)
+9. [Memory — linearAlloc vs heap](#memory--linearalloc-vs-heap)
+10. [File I/O — romfs and sdmc](#file-io--romfs-and-sdmc)
+11. [Input](#input)
+12. [Build System](#build-system)
+13. [Common Gotchas](#common-gotchas)
 
 ---
 
@@ -33,10 +34,18 @@ Covers every binding package, their nuances, and the hard-won lessons from shipp
 │   └── audio/      — WAV loading + NDSP playback helpers
 ├── tools/
 │   ├── tritex.odin — PNG → .t3x texture converter
+│   ├── tritex.exe  — compiled binary
 │   └── mp3towav/   — MP3 → WAV converter (uses vendor:miniaudio)
-└── Examples/
-    └── Games/
-        └── FlappyClone/  — reference game using all packages
+├── NewProjectTemplate/  — copy this to start a new game
+│   ├── build.bat
+│   ├── main.odin
+│   ├── main.c
+│   ├── assets/images/
+│   └── assets/audio/
+├── Examples/
+│   └── Games/
+│       └── FlappyClone/  — reference game using all packages
+└── docs.md         — this file
 ```
 
 Typical imports in a game:
@@ -47,6 +56,60 @@ import c2d   "../../../lib/c2d"
 import c3d   "../../../lib/c3d"
 import audio "../../../lib/audio"
 ```
+
+---
+
+## Starting a New Project
+
+Copy the `NewProjectTemplate/` folder from the repo root and rename it to your project name.
+It contains everything needed to build and run immediately.
+
+```
+NewProjectTemplate/
+├── build.bat        ← full build pipeline, pre-configured
+├── main.odin        ← entry point with init/loop/cleanup boilerplate
+├── main.c           ← C shim that calls odin_main — do not modify
+├── assets/
+│   ├── images/      ← place PNG/JPG sprites here; subfolders with .t3s for atlases
+│   └── audio/       ← place WAV/OGG/MP3 here
+└── romfs/
+    ├── gfx/         ← generated .t3x files land here (do not edit manually)
+    └── audio/       ← copied audio files land here (do not edit manually)
+```
+
+### Checklist after copying
+
+1. **Rename** `set TARGET=MyGame` on **line 14** of `build.bat` to your project name.
+2. **Update the author** in the SMDH block — search `AuthorName` in `build.bat` (appears twice).
+3. **Update the package name** on line 1 of `main.odin` (`package my_game`).
+4. **Update the import paths** in `main.odin` — by default they point to `../lib` (one level up from the repo root). If your project is nested deeper, adjust accordingly.
+5. Add a **48×48 `assets/icon.png`** for a custom Homebrew Launcher icon (optional — falls back to the devkitPro default).
+
+### Tool paths — local vs PATH
+
+The template build.bat uses **local copies** of `tritex` and `mp3towav` so the project
+works without any PATH setup:
+
+```bat
+:: NewProjectTemplate/build.bat  — lines 9-10
+set TRITEX=..\tools\tritex.exe
+set MP3TOWAV=..\tools\mp3towav.exe
+```
+
+If you have `tritex` and `mp3towav` on your system PATH (e.g. after copying the exes to
+`C:\Windows\System32` or adding `tools\` to your PATH), change those two lines to:
+
+```bat
+set TRITEX=tritex
+set MP3TOWAV=mp3towav
+```
+
+That is the only change required — every `%TRITEX%` and `%MP3TOWAV%` reference in the
+script picks up the new value automatically.
+
+> The same two lines exist in `Examples/Games/FlappyClone/build.bat` but FlappyClone uses
+> bare `tritex` and `mp3towav` commands (PATH-based) since it predates the template.
+> The template defaults to local paths so a fresh clone works out of the box.
 
 ---
 
