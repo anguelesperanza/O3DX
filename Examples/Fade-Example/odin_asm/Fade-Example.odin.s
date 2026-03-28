@@ -476,13 +476,13 @@ __extendhfsf2:
 	.asciz	"\033[6;1HColour idx: %d   "
 	.size	".Lcsbs$Fade-Example$a", 24
 
-	.type	"runtime::default_random_generator_proc-.state-4360",%object
+	.type	"runtime::default_random_generator_proc-.state-8840",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4360"
+	.globl	"runtime::default_random_generator_proc-.state-8840"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4360":
+"runtime::default_random_generator_proc-.state-8840":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4360", 1032
+	.size	"runtime::default_random_generator_proc-.state-8840", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

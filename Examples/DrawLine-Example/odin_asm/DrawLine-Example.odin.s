@@ -435,13 +435,13 @@ __extendhfsf2:
 	.asciz	"\033[2;1HPress START to exit"
 	.size	".Lcsbs$DrawLine-Example$3", 26
 
-	.type	"runtime::default_random_generator_proc-.state-4249",%object
+	.type	"runtime::default_random_generator_proc-.state-8820",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4249"
+	.globl	"runtime::default_random_generator_proc-.state-8820"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4249":
+"runtime::default_random_generator_proc-.state-8820":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4249", 1032
+	.size	"runtime::default_random_generator_proc-.state-8820", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

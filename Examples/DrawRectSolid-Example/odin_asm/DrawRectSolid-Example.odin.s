@@ -370,13 +370,13 @@ __extendhfsf2:
 	.asciz	"\033[2;1HPress START to exit"
 	.size	".Lcsbs$DrawRectSolid-Example$3", 26
 
-	.type	"runtime::default_random_generator_proc-.state-4247",%object
+	.type	"runtime::default_random_generator_proc-.state-8760",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4247"
+	.globl	"runtime::default_random_generator_proc-.state-8760"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4247":
+"runtime::default_random_generator_proc-.state-8760":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4247", 1032
+	.size	"runtime::default_random_generator_proc-.state-8760", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

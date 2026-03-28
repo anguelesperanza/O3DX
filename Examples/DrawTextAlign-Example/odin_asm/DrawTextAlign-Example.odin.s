@@ -482,13 +482,13 @@ __extendhfsf2:
 	.asciz	"\033[5;1Halignment at scale 0.7."
 	.size	".Lcsbs$DrawTextAlign-Example$b", 30
 
-	.type	"runtime::default_random_generator_proc-.state-4323",%object
+	.type	"runtime::default_random_generator_proc-.state-8918",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4323"
+	.globl	"runtime::default_random_generator_proc-.state-8918"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4323":
+"runtime::default_random_generator_proc-.state-8918":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4323", 1032
+	.size	"runtime::default_random_generator_proc-.state-8918", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

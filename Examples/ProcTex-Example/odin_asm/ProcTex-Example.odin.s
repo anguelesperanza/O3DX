@@ -1293,13 +1293,13 @@ __extendhfsf2:
 	.long	4294902015
 	.size	"proctex_example::rainbow_colors", 32
 
-	.type	"runtime::default_random_generator_proc-.state-6358",%object
+	.type	"runtime::default_random_generator_proc-.state-8213",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-6358"
+	.globl	"runtime::default_random_generator_proc-.state-8213"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-6358":
+"runtime::default_random_generator_proc-.state-8213":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-6358", 1032
+	.size	"runtime::default_random_generator_proc-.state-8213", 1032
 
 	.type	".Lcsbs$ProcTex-Example$e",%object
 	.section	.rodata,"a",%progbits

@@ -465,13 +465,13 @@ __extendhfsf2:
 	.asciz	"\033[5;1Hevery frame via snprintf."
 	.size	".Lcsbs$DrawTextDynamic-Example$a", 32
 
-	.type	"runtime::default_random_generator_proc-.state-4352",%object
+	.type	"runtime::default_random_generator_proc-.state-8915",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4352"
+	.globl	"runtime::default_random_generator_proc-.state-8915"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4352":
+"runtime::default_random_generator_proc-.state-8915":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4352", 1032
+	.size	"runtime::default_random_generator_proc-.state-8915", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

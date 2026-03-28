@@ -1275,13 +1275,13 @@ __extendhfsf2:
 	.long	0x3f800000
 	.size	"fog_example::vertex_list", 1008
 
-	.type	"runtime::default_random_generator_proc-.state-6409",%object
+	.type	"runtime::default_random_generator_proc-.state-8213",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-6409"
+	.globl	"runtime::default_random_generator_proc-.state-8213"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-6409":
+"runtime::default_random_generator_proc-.state-8213":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-6409", 1032
+	.size	"runtime::default_random_generator_proc-.state-8213", 1032
 
 	.type	".Lcsbs$Fog-Example$e",%object
 	.section	.rodata,"a",%progbits

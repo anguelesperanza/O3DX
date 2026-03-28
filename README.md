@@ -9,7 +9,6 @@ Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the o
 ## What this repository does
 
 O3DX explores how far Odin can be pushed for 3DS homebrew development.
-The original code from Ske is preserved under `POC-Example/`.
 
 This project is an experiment in using AI (Claude) as a long-term collaborator on a non-trivial engineering project — writing bindings, debugging ABI issues, designing tools, building a full game, and maintaining documentation across many sessions. Claude acted as a pair programmer: researching the 3DS hardware and library internals, diagnosing bugs through binary analysis, writing and refactoring code, and authoring docs — while the human drove direction, tested on real hardware, and made final calls.
 
@@ -51,7 +50,6 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │       └── bridge.c            ← ABI bridge for all float-param Citro3D functions
 │
 ├── Examples/
-│   ├── POC-Example/            ← Original Ske proof-of-concept
 │   ├── Shapes-Example/         ← Basic shapes via C2D ✅
 │   ├── Image-Example/          ← Loading and displaying a .t3x sprite ✅
 │   ├── Input-Example/          ← Button, circle pad, touch input ✅

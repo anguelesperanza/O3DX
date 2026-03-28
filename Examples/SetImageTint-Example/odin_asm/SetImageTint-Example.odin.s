@@ -492,13 +492,13 @@ __extendhfsf2:
 	.asciz	"\033[4;1H1:none  2:TL=R  3:TR=G  4:rainbow"
 	.size	".Lcsbs$SetImageTint-Example$f", 40
 
-	.type	"runtime::default_random_generator_proc-.state-4231",%object
+	.type	"runtime::default_random_generator_proc-.state-8765",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4231"
+	.globl	"runtime::default_random_generator_proc-.state-8765"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4231":
+"runtime::default_random_generator_proc-.state-8765":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4231", 1032
+	.size	"runtime::default_random_generator_proc-.state-8765", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

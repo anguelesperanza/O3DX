@@ -1350,13 +1350,13 @@ __extendhfsf2:
 	.asciz	"\033[2;1HPress START to exit"
 	.size	".Lcsbs$Lighting-Example$11", 26
 
-	.type	"runtime::default_random_generator_proc-.state-6316",%object
+	.type	"runtime::default_random_generator_proc-.state-8216",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-6316"
+	.globl	"runtime::default_random_generator_proc-.state-8216"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-6316":
+"runtime::default_random_generator_proc-.state-8216":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-6316", 1032
+	.size	"runtime::default_random_generator_proc-.state-8216", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

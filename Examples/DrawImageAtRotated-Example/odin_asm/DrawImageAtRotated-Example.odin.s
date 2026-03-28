@@ -500,13 +500,13 @@ __extendhfsf2:
 	.asciz	"\033[5;1HBottom row: 180 225 270 315 deg"
 	.size	".Lcsbs$DrawImageAtRotated-Example$9", 38
 
-	.type	"runtime::default_random_generator_proc-.state-4351",%object
+	.type	"runtime::default_random_generator_proc-.state-8781",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4351"
+	.globl	"runtime::default_random_generator_proc-.state-8781"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4351":
+"runtime::default_random_generator_proc-.state-8781":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4351", 1032
+	.size	"runtime::default_random_generator_proc-.state-8781", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

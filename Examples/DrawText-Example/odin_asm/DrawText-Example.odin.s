@@ -473,13 +473,13 @@ __extendhfsf2:
 	.asciz	"\033[5;1H3 different scales."
 	.size	".Lcsbs$DrawText-Example$b", 26
 
-	.type	"runtime::default_random_generator_proc-.state-4329",%object
+	.type	"runtime::default_random_generator_proc-.state-8785",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4329"
+	.globl	"runtime::default_random_generator_proc-.state-8785"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4329":
+"runtime::default_random_generator_proc-.state-8785":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4329", 1032
+	.size	"runtime::default_random_generator_proc-.state-8785", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

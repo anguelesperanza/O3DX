@@ -601,13 +601,13 @@ __extendhfsf2:
 	.asciz	"\033[4;1HCitro3D phase 5 demo"
 	.size	".Lcsbs$Triangle-Example$12", 27
 
-	.type	"runtime::default_random_generator_proc-.state-4284",%object
+	.type	"runtime::default_random_generator_proc-.state-8192",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4284"
+	.globl	"runtime::default_random_generator_proc-.state-8192"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4284":
+"runtime::default_random_generator_proc-.state-8192":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4284", 1032
+	.size	"runtime::default_random_generator_proc-.state-8192", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

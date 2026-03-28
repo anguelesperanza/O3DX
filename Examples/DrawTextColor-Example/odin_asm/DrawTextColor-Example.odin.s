@@ -548,13 +548,13 @@ __extendhfsf2:
 	.asciz	"\033[5;1Hwith 5 different colours."
 	.size	".Lcsbs$DrawTextColor-Example$d", 32
 
-	.type	"runtime::default_random_generator_proc-.state-4315",%object
+	.type	"runtime::default_random_generator_proc-.state-8831",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4315"
+	.globl	"runtime::default_random_generator_proc-.state-8831"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4315":
+"runtime::default_random_generator_proc-.state-8831":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4315", 1032
+	.size	"runtime::default_random_generator_proc-.state-8831", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

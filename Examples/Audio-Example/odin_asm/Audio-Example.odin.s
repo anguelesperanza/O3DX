@@ -40,7 +40,7 @@ odin_main:
 	ldr	r0, .LCPI0_2
 	mov	r1, #0
 	bl	svcSleepThread
-	b	.LBB0_15
+	b	.LBB0_14
 .LBB0_2:
 	bl	ndspInit
 	cmp	r0, #0
@@ -51,9 +51,8 @@ odin_main:
 	bl	gfxFlushBuffers
 	bl	gfxSwapBuffers
 	ldr	r0, .LCPI0_4
-	mov	r1, #1
+	mov	r1, #0
 	bl	svcSleepThread
-	b	.LBB0_14
 .LBB0_4:
 	ldr	r0, .LCPI0_5
 	ldr	r1, .LCPI0_6
@@ -105,7 +104,7 @@ odin_main:
 	cmp	r0, #86
 	ldrbeq	r0, [sp, #107]
 	cmpeq	r0, #69
-	beq	.LBB0_17
+	beq	.LBB0_16
 .LBB0_12:
 	mov	r0, r5
 	bl	fclose
@@ -128,16 +127,15 @@ odin_main:
 	mov	r1, #1
 	bl	svcSleepThread
 	bl	ndspExit
-.LBB0_14:
 	bl	romfs_exit
-.LBB0_15:
+.LBB0_14:
 	bl	gfxExit
 	mov	r0, #1
-.LBB0_16:
+.LBB0_15:
 	add	sp, sp, #116
 	pop	{r4, r5, r6, r7, r8, r9, r10, r11, lr}
 	mov	pc, lr
-.LBB0_17:
+.LBB0_16:
 	add	r0, sp, #100
 	mov	r10, #0
 	mov	r1, #1
@@ -154,7 +152,7 @@ odin_main:
 	mov	r6, #0
 	mov	r9, #0
 	mov	r7, #0
-.LBB0_19:
+.LBB0_18:
 	mov	r0, r4
 	mov	r1, #4
 	mov	r2, #1
@@ -168,27 +166,27 @@ odin_main:
 	cmp	r3, #116
 	ldrb	r0, [sp, #103]
 	cmpeq	r2, #102
-	bne	.LBB0_22
+	bne	.LBB0_21
 	cmp	r1, #109
 	cmpeq	r0, #32
-	beq	.LBB0_28
-.LBB0_22:
+	beq	.LBB0_27
+.LBB0_21:
 	cmp	r3, #116
-	bne	.LBB0_25
+	bne	.LBB0_24
 	cmp	r2, #100
 	cmpeq	r1, #97
-	bne	.LBB0_25
+	bne	.LBB0_24
 	cmp	r0, #97
-	beq	.LBB0_37
-.LBB0_25:
+	beq	.LBB0_36
+.LBB0_24:
 	ldr	r0, [sp, #96]
 	and	r1, r0, #1
 	add	r1, r1, r0
-.LBB0_26:
+.LBB0_25:
 	mov	r0, r5
 	mov	r2, #1
 	bl	fseek
-.LBB0_27:
+.LBB0_26:
 	mov	r0, r11
 	mov	r1, #1
 	mov	r2, #4
@@ -197,9 +195,9 @@ odin_main:
 	str	r10, [sp, #100]
 	bl	fread
 	cmp	r0, #4
-	beq	.LBB0_19
+	beq	.LBB0_18
 	b	.LBB0_12
-.LBB0_28:
+.LBB0_27:
 	add	r0, sp, #94
 	mov	r1, #2
 	mov	r2, #1
@@ -263,37 +261,38 @@ odin_main:
 	ldr	r9, [sp, #88]
 	sub	r1, r0, #16
 	cmp	r1, #0
-	bgt	.LBB0_26
-	b	.LBB0_27
-.LBB0_37:
+	bgt	.LBB0_25
+	b	.LBB0_26
+.LBB0_36:
 	mov	r0, r5
 	bl	ftell
 	cmp	r8, #0
 	beq	.LBB0_12
 	ldr	r11, [sp, #96]
-	mov	r4, r0
+	mov	r10, r0
 	mov	r0, r11
 	bl	linearAlloc
 	cmp	r0, #0
-	str	r0, [sp, #4]
 	beq	.LBB0_12
+	mov	r4, r0
 	mov	r0, r5
-	mov	r1, r4
+	mov	r1, r10
 	mov	r2, #0
 	bl	fseek
-	ldr	r0, [sp, #4]
+	mov	r0, r4
 	mov	r1, #1
 	mov	r2, r11
 	mov	r3, r5
 	bl	fread
 	cmp	r0, r11
-	bne	.LBB0_55
+	bne	.LBB0_54
 	mov	r0, r5
+	str	r4, [sp, #4]
 	bl	fclose
 	lsr	r0, r6, #3
 	mul	r5, r0, r7
 	cmp	r5, #0
-	beq	.LBB0_57
+	beq	.LBB0_56
 	mov	r0, #1
 	mov	r10, #1
 	bl	ndspSetOutputMode
@@ -317,21 +316,21 @@ odin_main:
 	cmp	r7, #1
 	mov	r8, r0
 	cmpeq	r6, #8
-	beq	.LBB0_45
+	beq	.LBB0_44
 	cmp	r7, #1
 	moveq	r10, #5
 	cmpeq	r6, #16
-	beq	.LBB0_45
+	beq	.LBB0_44
 	cmp	r7, #2
 	moveq	r10, #2
 	cmpeq	r6, #8
-	beq	.LBB0_45
+	beq	.LBB0_44
 	eor	r0, r6, #16
 	eor	r1, r7, #2
 	orrs	r0, r1, r0
 	mov	r10, #5
 	moveq	r10, #6
-.LBB0_45:
+.LBB0_44:
 	mov	r0, #0
 	mov	r1, r10
 	mov	r11, #0
@@ -391,15 +390,15 @@ odin_main:
 	bl	printf
 	bl	aptMainLoop
 	tst	r0, #255
-	beq	.LBB0_56
+	beq	.LBB0_55
 	mov	r6, #46661632
 	ldr	r8, .LCPI0_23
 	ldr	r9, .LCPI0_24
 	orr	r6, r6, #1073741824
 	ldr	r7, .LCPI0_25
 	ldr	r4, .LCPI0_26
-	b	.LBB0_48
-.LBB0_47:
+	b	.LBB0_47
+.LBB0_46:
 	ldr	r0, .LCPI0_22
 	cmp	r11, #0
 	mov	r1, r8
@@ -427,25 +426,25 @@ odin_main:
 	bl	gspWaitForEvent
 	bl	aptMainLoop
 	tst	r0, #255
-	beq	.LBB0_56
-.LBB0_48:
+	beq	.LBB0_55
+.LBB0_47:
 	bl	hidScanInput
 	bl	hidKeysDown
 	tst	r0, #8
-	bne	.LBB0_56
+	bne	.LBB0_55
 	mov	r10, r0
 	tst	r0, #1
-	beq	.LBB0_51
+	beq	.LBB0_50
 	rsbs	r0, r11, #0
 	adc	r1, r11, r0
 	mov	r0, #0
 	bl	ndspChnSetPaused
 	eor	r11, r11, #1
-.LBB0_51:
+.LBB0_50:
 	mov	r0, #64
 	orr	r0, r0, #1073741824
 	tst	r10, r0
-	beq	.LBB0_53
+	beq	.LBB0_52
 	ldr	r1, .LCPI0_20
 	mov	r0, r5
 	bl	__aeabi_fadd
@@ -456,11 +455,11 @@ odin_main:
 	movne	r5, #1065353216
 	mov	r0, r5
 	bl	ndsp_set_master_vol
-.LBB0_53:
+.LBB0_52:
 	mov	r0, #128
 	orr	r0, r0, #-2147483648
 	tst	r10, r0
-	beq	.LBB0_47
+	beq	.LBB0_46
 	ldr	r1, .LCPI0_21
 	mov	r0, r5
 	bl	__aeabi_fadd
@@ -471,12 +470,12 @@ odin_main:
 	movne	r5, #0
 	mov	r0, r5
 	bl	ndsp_set_master_vol
-	b	.LBB0_47
-.LBB0_55:
-	ldr	r0, [sp, #4]
+	b	.LBB0_46
+.LBB0_54:
+	mov	r0, r4
 	bl	linearFree
 	b	.LBB0_12
-.LBB0_56:
+.LBB0_55:
 	mov	r0, #0
 	bl	ndspChnWaveBufClear
 	ldr	r0, [sp, #4]
@@ -485,8 +484,8 @@ odin_main:
 	bl	romfs_exit
 	bl	gfxExit
 	mov	r0, #0
-	b	.LBB0_16
-.LBB0_57:
+	b	.LBB0_15
+.LBB0_56:
 	.inst	0xe7ffdefe
 	.p2align	2
 .LCPI0_0:
@@ -498,7 +497,7 @@ odin_main:
 .LCPI0_3:
 	.long	".Lcsbs$Audio-Example$13"
 .LCPI0_4:
-	.long	705032704
+	.long	2000000000
 .LCPI0_5:
 	.long	".Lcsbs$Audio-Example$14"
 .LCPI0_6:
@@ -828,19 +827,19 @@ __extendhfsf2:
 	.asciz	"rb"
 	.size	".Lcsbs$Audio-Example$9", 3
 
-	.type	"runtime::default_random_generator_proc-.state-4863",%object
+	.type	"runtime::default_random_generator_proc-.state-4969",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4863"
+	.globl	"runtime::default_random_generator_proc-.state-4969"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4863":
+"runtime::default_random_generator_proc-.state-4969":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4863", 1032
+	.size	"runtime::default_random_generator_proc-.state-4969", 1032
 
 	.type	".Lcsbs$Audio-Example$13",%object
 	.section	.rodata,"a",%progbits
 ".Lcsbs$Audio-Example$13":
-	.asciz	"ERROR: ndspInit failed (rc=0x%08lX)\n"
-	.size	".Lcsbs$Audio-Example$13", 37
+	.asciz	"WARN: ndspInit rc=0x%08lX (continuing)\n"
+	.size	".Lcsbs$Audio-Example$13", 40
 
 	.type	".Lcsbs$Audio-Example$14",%object
 ".Lcsbs$Audio-Example$14":

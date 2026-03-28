@@ -1233,13 +1233,13 @@ __extendhfsf2:
 	.long	0x3f800000
 	.size	"spinning_cube_example::vertex_list", 1008
 
-	.type	"runtime::default_random_generator_proc-.state-6277",%object
+	.type	"runtime::default_random_generator_proc-.state-8216",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-6277"
+	.globl	"runtime::default_random_generator_proc-.state-8216"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-6277":
+"runtime::default_random_generator_proc-.state-8216":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-6277", 1032
+	.size	"runtime::default_random_generator_proc-.state-8216", 1032
 
 	.type	".Lcsbs$SpinningCube-Example$e",%object
 	.section	.rodata,"a",%progbits

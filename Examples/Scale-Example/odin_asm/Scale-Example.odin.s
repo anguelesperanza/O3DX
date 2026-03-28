@@ -1125,13 +1125,13 @@ __extendhfsf2:
 	.long	0x3f800000
 	.size	"scale_example::vertex_list", 1008
 
-	.type	"runtime::default_random_generator_proc-.state-6362",%object
+	.type	"runtime::default_random_generator_proc-.state-8284",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-6362"
+	.globl	"runtime::default_random_generator_proc-.state-8284"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-6362":
+"runtime::default_random_generator_proc-.state-8284":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-6362", 1032
+	.size	"runtime::default_random_generator_proc-.state-8284", 1032
 
 	.type	".Lcsbs$Scale-Example$e",%object
 	.section	.rodata,"a",%progbits

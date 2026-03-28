@@ -464,13 +464,13 @@ __extendhfsf2:
 	.asciz	"\033[7;1HBot-right: X=0.3 Y=0.3 (blue)"
 	.size	".Lcsbs$ViewShear-Example$a", 36
 
-	.type	"runtime::default_random_generator_proc-.state-4232",%object
+	.type	"runtime::default_random_generator_proc-.state-8790",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4232"
+	.globl	"runtime::default_random_generator_proc-.state-8790"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4232":
+"runtime::default_random_generator_proc-.state-8790":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4232", 1032
+	.size	"runtime::default_random_generator_proc-.state-8790", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

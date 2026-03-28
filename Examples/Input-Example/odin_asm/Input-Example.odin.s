@@ -779,13 +779,13 @@ __extendhfsf2:
 	.asciz	"\033[5;1HCStick: %d, %d      "
 	.size	".Lcsbs$Input-Example$18", 27
 
-	.type	"runtime::default_random_generator_proc-.state-4242",%object
+	.type	"runtime::default_random_generator_proc-.state-8909",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4242"
+	.globl	"runtime::default_random_generator_proc-.state-8909"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4242":
+"runtime::default_random_generator_proc-.state-8909":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4242", 1032
+	.size	"runtime::default_random_generator_proc-.state-8909", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1

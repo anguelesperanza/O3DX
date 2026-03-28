@@ -477,13 +477,13 @@ __extendhfsf2:
 	.asciz	"\033[6;1H  Blue  2.0x | Orange 3.0x"
 	.size	".Lcsbs$ViewScale-Example$9", 33
 
-	.type	"runtime::default_random_generator_proc-.state-4236",%object
+	.type	"runtime::default_random_generator_proc-.state-9003",%object
 	.section	.tbss,"awT",%nobits
-	.globl	"runtime::default_random_generator_proc-.state-4236"
+	.globl	"runtime::default_random_generator_proc-.state-9003"
 	.p2align	2, 0x0
-"runtime::default_random_generator_proc-.state-4236":
+"runtime::default_random_generator_proc-.state-9003":
 	.zero	1032
-	.size	"runtime::default_random_generator_proc-.state-4236", 1032
+	.size	"runtime::default_random_generator_proc-.state-9003", 1032
 
 	.section	".note.GNU-stack","",%progbits
 	.eabi_attribute	30, 1
