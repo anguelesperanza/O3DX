@@ -9,7 +9,7 @@ set PATH=%DEVKITARM%\bin;%DEVKITPRO%\tools\bin;%PATH%
 :: -------------------------------
 :: Project folders
 :: -------------------------------
-set TARGET=%~nX0
+set TARGET=FlappyClone
 set BUILD=build
 set SOURCES=source
 set INCLUDES=include
@@ -17,11 +17,12 @@ set DATA=data
 set GFX=gfx
 set ROMFS=romfs
 set GFXOUT=%ROMFS%\gfx
+set AUDIOOUT=%ROMFS%\audio
 set ODINASM=odin_asm
-set PNG_IMAGES=png_images
-set TRITEX=C:\Users\King-\odin-projects\3dsLib\tools\tritex.exe
+set IMAGES=assets\images
+set AUDIO=assets\audio
 :: Shared library root (relative to this example)
-set LIB=..\..\lib
+set LIB=..\..\..\lib
 :: -------------------------------
 :: Clean previous build
 :: -------------------------------
@@ -38,21 +39,56 @@ echo.
 echo === Building 3DS Project ===
 echo.
 :: -------------------------------
-:: Convert PNG images → .t3x
+:: Convert images → .t3x  (searches assets\images recursively)
+:: Folders that contain a .t3s file are built as atlases via tritex -a.
+:: Individual image files inside those folders are skipped to avoid
+:: generating duplicate single-frame .t3x files alongside the atlas.
 :: -------------------------------
 echo.
-echo Converting PNG images...
+echo Converting images...
+if not exist %GFXOUT% mkdir %GFXOUT%
+
+:: Pass 1 — atlas folders: build every .t3s as a multi-sprite atlas.
+set T3S_FOUND=0
+for /r %IMAGES% %%t in (*.t3s) do (
+    set T3S_FOUND=1
+    echo  - %%t [atlas]
+    tritex -a -o "%GFXOUT%\%%~nt.t3x" -i "%%t"
+    if errorlevel 1 goto :fail
+)
+if "%T3S_FOUND%"=="0" echo  - No .t3s atlas files found, skipping pass 1.
+
+:: Pass 2 — standalone images: convert each image that does NOT live in a
+:: folder that already has a .t3s file (those are owned by pass 1).
 set IMG_FOUND=0
-for %%f in (%PNG_IMAGES%\*.png %PNG_IMAGES%\*.jpg %PNG_IMAGES%\*.jpeg) do set IMG_FOUND=1
-if "%IMG_FOUND%"=="1" (
-    if not exist %ROMFS% mkdir %ROMFS%
-    for %%f in (%PNG_IMAGES%\*.png %PNG_IMAGES%\*.jpg %PNG_IMAGES%\*.jpeg) do (
+for /r %IMAGES% %%f in (*.png *.jpg *.jpeg) do (
+    set "IMG_DIR=%%~dpf"
+    set "SKIP=0"
+    for %%t in ("!IMG_DIR!*.t3s") do set "SKIP=1"
+    if "!SKIP!"=="0" (
+        set IMG_FOUND=1
         echo  - %%f
-        "%TRITEX%" "%%f" "%ROMFS%\%%~nf.t3x"
+        tritex "%%f" "%GFXOUT%\%%~nf.t3x"
+        if errorlevel 1 goto :fail
+    )
+)
+if "%IMG_FOUND%"=="0" echo  - No standalone images found, skipping pass 2.
+:: -------------------------------
+:: Copy audio files → romfs\audio
+:: -------------------------------
+echo.
+echo Copying audio...
+set AUDIO_FOUND=0
+for /r %AUDIO% %%f in (*.wav *.ogg *.mp3) do set AUDIO_FOUND=1
+if "%AUDIO_FOUND%"=="1" (
+    if not exist %AUDIOOUT% mkdir %AUDIOOUT%
+    for /r %AUDIO% %%f in (*.wav *.ogg *.mp3) do (
+        echo  - %%f
+        copy /Y "%%f" "%AUDIOOUT%\%%~nxf" >nul
         if errorlevel 1 goto :fail
     )
 ) else (
-    echo  - No images found in %PNG_IMAGES%, skipping.
+    echo  - No audio found in %AUDIO%, skipping.
 )
 :: -------------------------------
 :: Build Odin → assembly → object
@@ -129,7 +165,7 @@ echo.
 echo Converting textures...
 for %%f in (%GFX%\*.t3s) do (
     echo  - %%f
-    "%TRITEX%" -i "%%f" -H "%GFXOUT%\%%~nf.h" -d "%GFXOUT%\%%~nf.d" -o "%GFXOUT%\%%~nf.t3x"
+    tritex -i "%%f" -H "%GFXOUT%\%%~nf.h" -d "%GFXOUT%\%%~nf.d" -o "%GFXOUT%\%%~nf.t3x"
     if errorlevel 1 goto :fail
 )
 :: -------------------------------
@@ -184,8 +220,13 @@ if errorlevel 1 goto :fail
 :: -------------------------------
 echo.
 echo Generating SMDH...
-smdhtool --create "%TARGET%" "%TARGET%" "Anguel" ^
-    "%DEVKITPRO%\libctru\default_icon.png" "%TARGET%.smdh"
+if exist "assets\icon.png" (
+    echo  - Using assets\icon.png
+    smdhtool --create "%TARGET%" "%TARGET%" "AuthorName" "assets\icon.png" "%TARGET%.smdh"
+) else (
+    echo  - No assets\icon.png found, using default icon
+    smdhtool --create "%TARGET%" "%TARGET%" "AuthorName" "%DEVKITPRO%\libctru\default_icon.png" "%TARGET%.smdh"
+)
 if errorlevel 1 goto :fail
 :: -------------------------------
 :: Convert ELF → 3DSX

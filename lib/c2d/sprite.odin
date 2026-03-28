@@ -90,3 +90,20 @@ foreign c2d_bridge {
     @(link_name = "c2d_sprite_rotate_degrees")
     C2D_SpriteRotateDegrees :: proc(sprite: ^C2D_Sprite, degrees: f32) ---
 }
+
+// ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────
+DrawSprite               :: C2D_DrawSprite
+DrawSpriteTinted         :: C2D_DrawSpriteTinted
+SpriteFromImage          :: C2D_SpriteFromImage
+SpriteFromSheet          :: C2D_SpriteFromSheet
+SpriteSetPos             :: C2D_SpriteSetPos
+SpriteSetScale           :: C2D_SpriteSetScale
+SpriteSetCenter          :: C2D_SpriteSetCenter
+SpriteSetCenterRaw       :: C2D_SpriteSetCenterRaw
+SpriteSetRotation        :: C2D_SpriteSetRotation
+SpriteSetRotationDegrees :: C2D_SpriteSetRotationDegrees
+SpriteSetDepth           :: C2D_SpriteSetDepth
+SpriteMove               :: C2D_SpriteMove
+SpriteScale              :: C2D_SpriteScale
+SpriteRotate             :: C2D_SpriteRotate
+SpriteRotateDegrees      :: C2D_SpriteRotateDegrees

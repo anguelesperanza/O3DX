@@ -86,7 +86,7 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   └── SaveData-Example/       ← FS service: read/write save struct to SD card ✅ (Phase 11)
 │
 └── tools/
-    ├── png2t3x.exe             ← PNG → Tex3DS .t3x converter (standard binary format; workaround for Windows tex3ds bug)
+    ├── png2t3x.exe             ← Drop-in tex3ds replacement: PNG/JPEG → .t3x, atlas support, .t3s include files
     └── png2t3x.odin            ← Source for the converter
 ```
 
@@ -274,10 +274,11 @@ Examples created: `SpriteSheet-Example`, `CustomFont-Example`
 
 > **Note on `.t3x` files:** `C2D_SpriteSheetLoad` calls `Tex3DS_TextureImportStdio` internally and
 > requires a `.t3x` file in the standard Tex3DS binary format. The DevKitPro `tex3ds` tool has a
-> known bug on Windows that produces corrupt output. `tools/png2t3x.exe` is a working replacement
-> that writes the correct format. All image-loading examples use `Tex3DS_TextureImportStdio` in
-> their `main.c` for parsing, and `SpriteSheet-Example` uses the full `C2D_SpriteSheetLoad` →
-> `C2D_SpriteFromSheet` pipeline end-to-end.
+> known bug on Windows that produces corrupt output. `tools/png2t3x.exe` is a drop-in replacement
+> that writes the correct format and supports single images, texture atlases (`-a`), and `.t3s`
+> include files (`-i`). All image-loading examples use `Tex3DS_TextureImportStdio` in their
+> `main.c`, and `SpriteSheet-Example` uses the full `C2D_SpriteSheetLoad` → `C2D_SpriteFromSheet`
+> pipeline end-to-end.
 
 ---
 
@@ -722,19 +723,75 @@ proven, safe path for file I/O from Odin on 3DS.
 
 ### `tools/png2t3x.exe`
 
-Converts a PNG or JPEG to a `.t3x` file in the **standard Tex3DS binary format** compatible with `Tex3DS_TextureImportStdio` and `C2D_SpriteSheetLoad`.
+A drop-in replacement for the official `tex3ds` tool. Converts PNG/JPEG images to `.t3x` files in the standard Tex3DS binary format, compatible with `Tex3DS_TextureImportStdio`, `C2D_SpriteSheetLoad`, and `C2D_SpriteSheetLoadFromHandle`.
 
-The official `tex3ds` tool from DevKitPro has a known bug on Windows that produces corrupt output; this tool is a working replacement. It is built from `tools/png2t3x.odin` using the Odin compiler.
+The official `tex3ds` tool has a known bug on Windows that produces corrupt output; this tool is a working replacement. Built from `tools/png2t3x.odin` using the Odin compiler.
 
-**What it produces:**
-- No magic bytes — file starts directly with a `u16 numSubTextures` field
-- Dimensions rounded up to the nearest power-of-two ≥ 8 and zero-padded
-- Pixels converted to ABGR8 byte order (3DS GPU in-memory layout), Morton (Z-curve) swizzled in 8×8 tiles, Y-flipped
-- A 4-byte BIOS compression header with type `0x00` (no compression) wrapping the pixel data
+**Usage**
 
-Usage: `png2t3x.exe input.png output.t3x`
+```
+# Single image (legacy positional form — backward compatible)
+png2t3x input.png output.t3x
 
-All image-based examples' `build.bat` files invoke this automatically before the build step. All `load_t3x_image` helpers in the example `main.c` files parse the output with `Tex3DS_TextureImportStdio`.
+# Single image with flags
+png2t3x -o output.t3x input.png
+
+# Texture atlas: pack multiple images into one .t3x
+png2t3x -a -o atlas.t3x sprite1.png sprite2.png sprite3.png
+
+# Texture atlas via .t3s include file (matches tex3ds -i usage exactly)
+png2t3x -a -o atlas.t3x -i sprites.t3s
+```
+
+**Supported flags**
+
+| Flag | Description |
+|------|-------------|
+| `-a`, `--atlas` | Pack all inputs into a single texture atlas |
+| `-o`, `--output <file>` | Output `.t3x` filename |
+| `-i`, `--include <file>` | Read options and input filenames from a `.t3s` file |
+| `-f`, `--format <fmt>` | Accepted for compatibility; RGBA8 output only |
+| `-z`, `--compress <cmp>` | Accepted for compatibility; uncompressed output only |
+| `-m/-d/-H/-p/-q/-r/-t/-b/-c/-s` | Accepted for compatibility; silently ignored |
+| `-h`, `--help` | Show help |
+| `-v`, `--version` | Show version |
+
+**`.t3s` include file format**
+
+Plain-text, whitespace-tokenised. Flags and filenames can be mixed freely on any line. Comments start with `#`. Paths are resolved relative to the `.t3s` file's directory.
+
+```
+# sprites.t3s
+-f rgba8
+-z none
+sprite_idle.png
+sprite_run.png
+"path with spaces/sprite_jump.png"
+```
+
+Typical invocation mirroring the real tex3ds workflow:
+
+```bat
+png2t3x -a -o romfs/sprites.t3x -i assets/sprites.t3s
+```
+
+**What the output contains**
+- Header starts with `u16 numSubTextures` (no magic bytes)
+- `texture_params` byte: `log2(w)−3` in bits `[2:0]`, `log2(h)−3` in bits `[5:3]`
+- One 12-byte sub-texture UV entry per input image (written in input order)
+- Sub-texture UVs are Y-flipped: `uv_top = (ch−y)×1024/ch`, `uv_bottom = (ch−y−h)×1024/ch`
+- Canvas dimensions are the smallest power-of-two ≥ 8 that fits all images (up to 1024×1024)
+- Shelf-packing algorithm: images sorted by height descending, packed left-to-right in rows
+- Pixels: ABGR8 byte order, Morton (Z-curve) swizzled in 8×8 tiles, Y-flipped
+- 4-byte BIOS compression header with type `0x00` (no compression)
+
+**Rebuilding**
+
+```bat
+odin build tools/png2t3x.odin -file -out:tools/png2t3x.exe
+```
+
+All image-based examples' `build.bat` files invoke this automatically before the build step.
 
 ---
 

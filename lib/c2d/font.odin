@@ -91,3 +91,16 @@ foreign c2d_bridge {
         scaleX:     f32,
         scaleY:     f32) ---
 }
+
+// ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────
+FontLoad                   :: C2D_FontLoad
+FontLoadFromMem            :: C2D_FontLoadFromMem
+FontLoadFromFD             :: C2D_FontLoadFromFD
+FontLoadFromHandle         :: C2D_FontLoadFromHandle
+FontLoadSystem             :: C2D_FontLoadSystem
+FontFree                   :: C2D_FontFree
+FontSetFilter              :: C2D_FontSetFilter
+FontGlyphIndexFromCodePoint :: C2D_FontGlyphIndexFromCodePoint
+FontGetCharWidthInfo       :: C2D_FontGetCharWidthInfo
+FontGetInfo                :: C2D_FontGetInfo
+FontCalcGlyphPos           :: C2D_FontCalcGlyphPos

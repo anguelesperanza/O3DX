@@ -15,6 +15,11 @@ C3D_DEFAULT_CMDBUF_SIZE :: u32(0x40000)
 C3D_FRAME_SYNCDRAW :: u8(1) // BIT(0) — sync with display before drawing
 C3D_FRAME_NONBLOCK :: u8(2) // BIT(1) — return false instead of blocking
 
+// ── Short aliases (strip C3D_ prefix) ──────────────────────────────────────
+DEFAULT_CMDBUF_SIZE :: C3D_DEFAULT_CMDBUF_SIZE
+FRAME_SYNCDRAW      :: C3D_FRAME_SYNCDRAW
+FRAME_NONBLOCK      :: C3D_FRAME_NONBLOCK
+
 // ============================================================
 // citro3d — functions with no float parameters.
 // Safe to call directly from soft-float Odin.
@@ -331,3 +336,132 @@ foreign c3d_bridge {
     @(link_name = "c3d_fvunif_mtx2x4")
     C3D_FVUnifMtx2x4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
 }
+
+// ── Short aliases (strip C3D_ prefix) ──────────────────────────────────────
+Init                    :: C3D_Init
+Fini                    :: C3D_Fini
+FrameBegin              :: C3D_FrameBegin
+FrameEnd                :: C3D_FrameEnd
+FrameSync               :: C3D_FrameSync
+FrameCounter            :: C3D_FrameCounter
+FrameDrawOn             :: C3D_FrameDrawOn
+FrameSplit              :: C3D_FrameSplit
+FrameEndHook            :: C3D_FrameEndHook
+SetViewport             :: C3D_SetViewport
+SetScissor              :: C3D_SetScissor
+BindProgram             :: C3D_BindProgram
+DrawArrays              :: C3D_DrawArrays
+DrawElements            :: C3D_DrawElements
+ImmDrawBegin            :: C3D_ImmDrawBegin
+ImmDrawEnd              :: C3D_ImmDrawEnd
+FixedAttribGetWritePtr  :: C3D_FixedAttribGetWritePtr
+GetAttrInfo             :: C3D_GetAttrInfo
+SetAttrInfo             :: C3D_SetAttrInfo
+GetBufInfo              :: C3D_GetBufInfo
+SetBufInfo              :: C3D_SetBufInfo
+FVUnifWritePtr          :: C3D_FVUnifWritePtr
+IVUnifWritePtr          :: C3D_IVUnifWritePtr
+BoolUnifSet             :: C3D_BoolUnifSet
+UpdateUniforms          :: C3D_UpdateUniforms
+SyncDisplayTransfer     :: C3D_SyncDisplayTransfer
+SyncTextureCopy         :: C3D_SyncTextureCopy
+SyncMemoryFill          :: C3D_SyncMemoryFill
+TexInitWithParams       :: C3D_TexInitWithParams
+TexLoadImage            :: C3D_TexLoadImage
+TexGenerateMipmap       :: C3D_TexGenerateMipmap
+TexBind                 :: C3D_TexBind
+TexFlush                :: C3D_TexFlush
+TexDelete               :: C3D_TexDelete
+CalcColorBufSize        :: C3D_CalcColorBufSize
+CalcDepthBufSize        :: C3D_CalcDepthBufSize
+GetFrameBuf             :: C3D_GetFrameBuf
+SetFrameBuf             :: C3D_SetFrameBuf
+FrameBufTex             :: C3D_FrameBufTex
+FrameBufClear           :: C3D_FrameBufClear
+FrameBufTransfer        :: C3D_FrameBufTransfer
+GetTexEnv               :: C3D_GetTexEnv
+SetTexEnv               :: C3D_SetTexEnv
+DirtyTexEnv             :: C3D_DirtyTexEnv
+TexEnvBufUpdate         :: C3D_TexEnvBufUpdate
+TexEnvBufColor          :: C3D_TexEnvBufColor
+RenderTargetCreate      :: C3D_RenderTargetCreate
+RenderTargetCreateFromTex :: C3D_RenderTargetCreateFromTex
+RenderTargetDelete      :: C3D_RenderTargetDelete
+RenderTargetSetOutput   :: C3D_RenderTargetSetOutput
+CullFace                :: C3D_CullFace
+StencilTest             :: C3D_StencilTest
+StencilOp               :: C3D_StencilOp
+BlendingColor           :: C3D_BlendingColor
+EarlyDepthTest          :: C3D_EarlyDepthTest
+DepthTest               :: C3D_DepthTest
+AlphaTest               :: C3D_AlphaTest
+AlphaBlend              :: C3D_AlphaBlend
+ColorLogicOp            :: C3D_ColorLogicOp
+FragOpMode              :: C3D_FragOpMode
+LightEnvInit            :: C3D_LightEnvInit
+LightEnvBind            :: C3D_LightEnvBind
+LightEnvMaterial        :: C3D_LightEnvMaterial
+LightEnvLut             :: C3D_LightEnvLut
+LightEnvFresnel         :: C3D_LightEnvFresnel
+LightEnvBumpMode        :: C3D_LightEnvBumpMode
+LightEnvBumpSel         :: C3D_LightEnvBumpSel
+LightEnvBumpNormalZ     :: C3D_LightEnvBumpNormalZ
+LightEnvShadowMode      :: C3D_LightEnvShadowMode
+LightEnvShadowSel       :: C3D_LightEnvShadowSel
+LightEnvClampHighlights :: C3D_LightEnvClampHighlights
+LightInit               :: C3D_LightInit
+LightEnable             :: C3D_LightEnable
+LightTwoSideDiffuse     :: C3D_LightTwoSideDiffuse
+LightGeoFactor          :: C3D_LightGeoFactor
+LightPosition           :: C3D_LightPosition
+LightShadowEnable       :: C3D_LightShadowEnable
+LightSpotEnable         :: C3D_LightSpotEnable
+LightSpotLut            :: C3D_LightSpotLut
+LightDistAttnEnable     :: C3D_LightDistAttnEnable
+LightDistAttn           :: C3D_LightDistAttn
+FogGasMode              :: C3D_FogGasMode
+FogColor                :: C3D_FogColor
+FogLutBind              :: C3D_FogLutBind
+GasBeginAcc             :: C3D_GasBeginAcc
+GasLightDirection       :: C3D_GasLightDirection
+GasLutInput             :: C3D_GasLutInput
+GasLutBind              :: C3D_GasLutBind
+ProcTexInit             :: C3D_ProcTexInit
+ProcTexBind             :: C3D_ProcTexBind
+ProcTexLutBind          :: C3D_ProcTexLutBind
+ProcTexColorLutBind     :: C3D_ProcTexColorLutBind
+RenderTargetClear       :: C3D_RenderTargetClear
+GetProcessingTime       :: C3D_GetProcessingTime
+GetDrawingTime          :: C3D_GetDrawingTime
+GetCmdBufUsage          :: C3D_GetCmdBufUsage
+FrameRate               :: C3D_FrameRate
+ImmSendAttrib           :: C3D_ImmSendAttrib
+FixedAttribSet          :: C3D_FixedAttribSet
+FVUnifSet               :: C3D_FVUnifSet
+DepthMap                :: C3D_DepthMap
+FragOpShadow            :: C3D_FragOpShadow
+TexShadowParams         :: C3D_TexShadowParams
+TexSetLodBias           :: C3D_TexSetLodBias
+LightEnvAmbient         :: C3D_LightEnvAmbient
+LightAmbient            :: C3D_LightAmbient
+LightDiffuse            :: C3D_LightDiffuse
+LightSpecular0          :: C3D_LightSpecular0
+LightSpecular1          :: C3D_LightSpecular1
+LightSpotDir            :: C3D_LightSpotDir
+LightColor              :: C3D_LightColor
+GasDeltaZ               :: C3D_GasDeltaZ
+GasAccMax               :: C3D_GasAccMax
+GasAttn                 :: C3D_GasAttn
+GasLightPlanar          :: C3D_GasLightPlanar
+GasLightView            :: C3D_GasLightView
+ProcTexClamp            :: C3D_ProcTexClamp
+ProcTexCombiner         :: C3D_ProcTexCombiner
+ProcTexNoiseEnable      :: C3D_ProcTexNoiseEnable
+ProcTexShift            :: C3D_ProcTexShift
+ProcTexFilter           :: C3D_ProcTexFilter
+ProcTexNoiseCoefs       :: C3D_ProcTexNoiseCoefs
+ProcTexLodBias          :: C3D_ProcTexLodBias
+FVUnifMtxNx4            :: C3D_FVUnifMtxNx4
+FVUnifMtx4x4            :: C3D_FVUnifMtx4x4
+FVUnifMtx3x4            :: C3D_FVUnifMtx3x4
+FVUnifMtx2x4            :: C3D_FVUnifMtx2x4

@@ -75,3 +75,16 @@ foreign c3d_bridge {
     @(link_name = "c3d_tex2d_get_image_ptr")
     C3D_Tex2DGetImagePtr :: proc(tex: ^C3D_Tex) -> rawptr ---
 }
+
+// ── Short aliases (strip C3D_ prefix) ──────────────────────────────────────
+TexEnvInit       :: C3D_TexEnvInit
+TexEnvSrc        :: C3D_TexEnvSrc
+TexEnvOpRgb      :: C3D_TexEnvOpRgb
+TexEnvOpAlpha    :: C3D_TexEnvOpAlpha
+TexEnvFunc       :: C3D_TexEnvFunc
+TexEnvColor      :: C3D_TexEnvColor
+TexEnvScale      :: C3D_TexEnvScale
+TexInit          :: C3D_TexInit
+TexSetFilter     :: C3D_TexSetFilter
+TexSetWrap       :: C3D_TexSetWrap
+Tex2DGetImagePtr :: C3D_Tex2DGetImagePtr

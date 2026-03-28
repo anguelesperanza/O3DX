@@ -662,3 +662,63 @@ GPU_PROCTEX_FILTER :: enum u32 {
     NEAREST_MIP_LINEAR   = 4,
     LINEAR_MIP_LINEAR    = 5,
 }
+
+// ── Short aliases (strip C3D_ prefix) ──────────────────────────────────────
+
+// Math types
+FVec             :: C3D_FVec
+FQuat            :: C3D_FQuat
+Mtx              :: C3D_Mtx
+
+// Texture types
+Tex              :: C3D_Tex
+TexCube          :: C3D_TexCube
+TexInitParams    :: C3D_TexInitParams
+DEPTHTYPE        :: C3D_DEPTHTYPE
+
+DEPTHTYPE_NO_DEPTH         :: C3D_DEPTHTYPE_NO_DEPTH
+DEPTHTYPE_DEPTH16          :: C3D_DEPTHTYPE_DEPTH16
+DEPTHTYPE_DEPTH24          :: C3D_DEPTHTYPE_DEPTH24
+DEPTHTYPE_DEPTH24_STENCIL8 :: C3D_DEPTHTYPE_DEPTH24_STENCIL8
+
+// Framebuffer types
+FrameBuf         :: C3D_FrameBuf
+ClearBits        :: C3D_ClearBits
+
+CLEAR_COLOR      :: C3D_CLEAR_COLOR
+CLEAR_DEPTH      :: C3D_CLEAR_DEPTH
+CLEAR_ALL        :: C3D_CLEAR_ALL
+
+// Attribute / buffer info types
+AttrInfo         :: C3D_AttrInfo
+BufCfg           :: C3D_BufCfg
+BufInfo          :: C3D_BufInfo
+
+// TexEnv types
+TexEnv           :: C3D_TexEnv
+TexEnvMode       :: C3D_TexEnvMode
+
+RGB              :: C3D_RGB
+Alpha            :: C3D_Alpha
+Both             :: C3D_Both
+
+// Matrix stack
+MTXSTACK_SIZE    :: C3D_MTXSTACK_SIZE
+MtxStack         :: C3D_MtxStack
+
+// Lighting types
+Material         :: C3D_Material
+LightLut         :: C3D_LightLut
+LightLutDA       :: C3D_LightLutDA
+LightEnv         :: C3D_LightEnv
+Light            :: C3D_Light
+
+// Fog / gas types
+FogLut           :: C3D_FogLut
+GasLut           :: C3D_GasLut
+
+// Procedural texture types
+ProcTex          :: C3D_ProcTex
+ProcTexLut       :: C3D_ProcTexLut
+ProcTexColorLut  :: C3D_ProcTexColorLut
+ProcTexCoord     :: C3D_ProcTexCoord

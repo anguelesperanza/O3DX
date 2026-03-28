@@ -158,3 +158,20 @@ foreign c2d_bridge {
         color:     u32,
         wrapWidth: f32) ---
 }
+
+// ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────
+TextBufNew           :: C2D_TextBufNew
+TextBufResize        :: C2D_TextBufResize
+TextBufDelete        :: C2D_TextBufDelete
+TextBufClear         :: C2D_TextBufClear
+TextBufGetNumGlyphs  :: C2D_TextBufGetNumGlyphs
+TextParseLine        :: C2D_TextParseLine
+TextFontParseLine    :: C2D_TextFontParseLine
+TextParse            :: C2D_TextParse
+TextFontParse        :: C2D_TextFontParse
+TextOptimize         :: C2D_TextOptimize
+TextGetDimensions    :: C2D_TextGetDimensions
+DrawText             :: C2D_DrawText
+DrawTextColor        :: C2D_DrawTextColor
+DrawTextWrap         :: C2D_DrawTextWrap
+DrawTextColorWrap    :: C2D_DrawTextColorWrap

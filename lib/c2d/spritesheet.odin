@@ -54,3 +54,12 @@ foreign c2d_bridge {
     @(link_name = "c2d_sprite_sheet_get_image")
     C2D_SpriteSheetGetImage :: proc(sheet: C2D_SpriteSheet, index: uint, out: ^C2D_Image) ---
 }
+
+// ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────
+SpriteSheetLoad           :: C2D_SpriteSheetLoad
+SpriteSheetLoadFromMem    :: C2D_SpriteSheetLoadFromMem
+SpriteSheetFromFD         :: C2D_SpriteSheetFromFD
+SpriteSheetLoadFromHandle :: C2D_SpriteSheetLoadFromHandle
+SpriteSheetFree           :: C2D_SpriteSheetFree
+SpriteSheetCount          :: C2D_SpriteSheetCount
+SpriteSheetGetImage       :: C2D_SpriteSheetGetImage

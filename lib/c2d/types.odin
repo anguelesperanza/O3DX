@@ -143,3 +143,40 @@ C2D_TintMode :: enum u32 {
     Mult  = 1,
     Luma  = 2,
 }
+
+// ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────
+
+// Constants
+DEFAULT_MAX_OBJECTS :: C2D_DEFAULT_MAX_OBJECTS
+
+// Core image type
+Image          :: C2D_Image
+
+// Tint types
+Corner         :: C2D_Corner
+Tint           :: C2D_Tint
+ImageTint      :: C2D_ImageTint
+
+// Draw params
+DrawParams     :: C2D_DrawParams
+
+// Text / font types
+TextBuf        :: C2D_TextBuf
+Font           :: C2D_Font
+Text           :: C2D_Text
+TextFlags      :: C2D_TextFlags
+
+AlignLeft      :: C2D_AlignLeft
+AlignRight     :: C2D_AlignRight
+AlignCenter    :: C2D_AlignCenter
+AlignJustified :: C2D_AlignJustified
+AtBaseline     :: C2D_AtBaseline
+WithColor      :: C2D_WithColor
+WordWrap       :: C2D_WordWrap
+
+// Sprite types
+SpriteSheet    :: C2D_SpriteSheet
+Sprite         :: C2D_Sprite
+
+// Tint mode
+TintMode       :: C2D_TintMode

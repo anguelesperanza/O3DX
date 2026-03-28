@@ -181,3 +181,45 @@ foreign c2d_bridge {
 C2D_Color32 :: #force_inline proc "c" (r, g, b, a: u8) -> u32 {
     return u32(r) | (u32(g) << 8) | (u32(b) << 16) | (u32(a) << 24)
 }
+
+// ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────
+// Allows c2d.Init(...) instead of c2d.C2D_Init(...)
+Init               :: C2D_Init
+Fini               :: C2D_Fini
+Prepare            :: C2D_Prepare
+Flush              :: C2D_Flush
+CreateScreenTarget :: C2D_CreateScreenTarget
+TargetClear        :: C2D_TargetClear
+Fade               :: C2D_Fade
+SetTintMode        :: C2D_SetTintMode
+SceneSize          :: C2D_SceneSize
+SceneTarget        :: C2D_SceneTarget
+DrawImage          :: C2D_DrawImage
+ViewReset          :: C2D_ViewReset
+ViewSave           :: C2D_ViewSave
+ViewRestore        :: C2D_ViewRestore
+SceneBegin         :: C2D_SceneBegin
+DrawTriangle       :: C2D_DrawTriangle
+DrawLine           :: C2D_DrawLine
+DrawRectangle      :: C2D_DrawRectangle
+DrawRectSolid      :: C2D_DrawRectSolid
+DrawEllipse        :: C2D_DrawEllipse
+DrawEllipseSolid   :: C2D_DrawEllipseSolid
+DrawCircle         :: C2D_DrawCircle
+DrawCircleSolid    :: C2D_DrawCircleSolid
+DrawImageAt        :: C2D_DrawImageAt
+DrawImageAtRotated :: C2D_DrawImageAtRotated
+ViewTranslate      :: C2D_ViewTranslate
+ViewRotate         :: C2D_ViewRotate
+ViewRotateDegrees  :: C2D_ViewRotateDegrees
+ViewShear          :: C2D_ViewShear
+ViewScale          :: C2D_ViewScale
+Color32f           :: C2D_Color32f
+PlainImageTint     :: C2D_PlainImageTint
+AlphaImageTint     :: C2D_AlphaImageTint
+SetImageTint       :: C2D_SetImageTint
+TopImageTint       :: C2D_TopImageTint
+BottomImageTint    :: C2D_BottomImageTint
+LeftImageTint      :: C2D_LeftImageTint
+RightImageTint     :: C2D_RightImageTint
+Color32            :: C2D_Color32

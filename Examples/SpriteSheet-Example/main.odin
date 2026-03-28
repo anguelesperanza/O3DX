@@ -33,6 +33,7 @@ spritesheet_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
 	ctru.gfxInitDefault()
 	c3d.C3D_Init(c3d.C3D_DEFAULT_CMDBUF_SIZE)
+	c3d.Init(c3d.C3D_DEFAULT_CMDBUF_SIZE)
 	c2d.C2D_Init(c2d.C2D_DEFAULT_MAX_OBJECTS)
 	c2d.C2D_Prepare()
 	ctru.consoleInit(ctru.GFX_BOTTOM, nil)

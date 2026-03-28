@@ -14,7 +14,7 @@ set BUILD=build
 set ROMFS=romfs
 set ODINASM=odin_asm
 set PNG_IMAGES=png_images
-set PNG2T3X=C:\Users\King-\odin-projects\3dsLib\tools\png2t3x.exe
+set TRITEX=C:\Users\King-\odin-projects\3dsLib\tools\tritex.exe
 :: Shared library root (relative to this example)
 set LIB=..\..\lib
 :: -------------------------------
@@ -49,7 +49,7 @@ if errorlevel 1 (
 echo Converting PNG images...
 for %%f in (%PNG_IMAGES%\*.png) do (
     echo  - %%f
-    "%PNG2T3X%" "%%f" "%ROMFS%\%%~nf.t3x"
+    "%TRITEX%" "%%f" "%ROMFS%\%%~nf.t3x"
     if errorlevel 1 goto :fail
 )
 :: -------------------------------

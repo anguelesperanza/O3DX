@@ -44,6 +44,14 @@ C3D_PI  :: C3D_TAU * 0.5
 C3D_Angle           :: #force_inline proc "contextless" (revolutions: f32) -> f32 { return revolutions * C3D_TAU }
 C3D_AngleFromDegrees :: #force_inline proc "contextless" (deg: f32)        -> f32 { return deg * C3D_TAU / 360.0 }
 
+// ── Short aliases (strip C3D_ prefix) ──────────────────────────────────────
+AspectRatioTop   :: C3D_AspectRatioTop
+AspectRatioBot   :: C3D_AspectRatioBot
+TAU              :: C3D_TAU
+PI               :: C3D_PI
+Angle            :: C3D_Angle
+AngleFromDegrees :: C3D_AngleFromDegrees
+
 // ============================================================
 // FVec4 operations  (all proc "contextless" — no ABI bridge needed)
 // ============================================================
