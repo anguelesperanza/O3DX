@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(wc -l /c/Users/King-/odin-projects/3ds-odin/Examples/*/*.odin /c/Users/King-/odin-projects/3ds-odin/Examples/*/*.c /c/Users/King-/odin-projects/3ds-odin/tools/*.odin)",
-      "Bash(xxd \"H:/luma/dumps/arm11/crash_dump_00000004.dmp\")"
-    ]
-  }
-}
