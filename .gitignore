@@ -1,0 +1,16 @@
+# Claude Code local project data
+.claude/
+
+# Build artifacts
+build/
+odin_asm/
+app.elf
+app.3dsx
+*.smdh
+
+# Generated romfs content (built from assets by build.bat)
+romfs/gfx/
+romfs/audio/
+
+# Odin compiler output
+*.S
