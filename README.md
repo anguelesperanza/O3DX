@@ -1,6 +1,6 @@
 # O3DX
 
-**O**din + **3D**S + **.3dx** — Nintendo 3DS homebrew development in Odin. Bindings, examples, tools, and a project template to get started fast.
+**O**din + **3D**S + **.3dx** — Nintendo 3DS homebrew development in Odin. Works by creating bindings for Ctru, Citro2D and Citro3D. Includes, examples, tools, and a project template to get started fast. 
 
 Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and proof-of-concept that this project builds on.
 
