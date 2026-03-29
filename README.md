@@ -4,6 +4,14 @@
 
 Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and proof-of-concept that this project builds on.
 
+(Developer Note) These `.md` files were written by Claude as part of the AI testing experiment I was doing. Information in here is based on the assumptions and informaiton it uncovered.
+Not everything may be correct, and something may be missing nuances or are simply wrong entirely. As you should with all AI explinations, take it with a grain of salt
+until you are able to verify everything you need yourself directly. It is better to use it as a guide rather than a source of truth.
+
+(Developer Note) I was not able to properly test / implement everything I wanted. There is enough to make a 2D game at least and there functions for 3DS are there as well.
+No skyboxes implementation on `tritex`, and no 3D game example (though there are 3D examples). My SD card died during the development pretty much after finishing the `FlappyClone` game example
+and I do not have a suitable replacement at this time. 
+ 
 ---
 
 ## What this repository does
@@ -740,9 +748,10 @@ A drop-in replacement for the official `tex3ds` tool. Converts PNG/JPEG images t
 in the standard Tex3DS binary format, compatible with `Tex3DS_TextureImportStdio`,
 `C2D_SpriteSheetLoad`, and `C2D_SpriteSheetLoadFromHandle`.
 
-The official `tex3ds` tool has a known bug on Windows that produces corrupt output due to an
-ImageMagick dependency issue; tritex is a self-contained replacement with no external
-dependencies. Built from `tools/tritex.odin` using the Odin compiler.
+(Developer Note) I encounted a bug with tex3ds and ImageMagick on window. The bug would currupt the pathing string that tex3ds and ImageMagick used
+when converting a image to a .t3x file. This was not just a `.bat` usage related bug. The bug happened when using the CLI calls directly.
+The rather convoluted fix/workaround was to just develop a tool that does the image to .t3x directly. That is the reason why `tritex` exists.
+It doesn't implement all of the features that `tex3ds` has but it should have enough for most use cases. 
 
 See `tools/howto.md` for the full usage reference.
 
