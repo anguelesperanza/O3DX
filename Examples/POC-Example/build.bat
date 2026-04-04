@@ -12,7 +12,7 @@ set MP3TOWAV=..\..\tools\mp3towav.exe
 :: ---------------------------------------------------------------
 :: Project settings — update these for your project
 :: ---------------------------------------------------------------
-set TARGET=ViewRotate-Example
+set TARGET=POC-Example
 set DEVKITPRO=C:\devkitPro
 set DEVKITARM=%DEVKITPRO%\devkitARM
 set PATH=%DEVKITARM%\bin;%DEVKITPRO%\tools\bin;%PATH%
@@ -42,7 +42,7 @@ if not exist %GFXOUT%   mkdir %GFXOUT%
 if not exist %AUDIOOUT% mkdir %AUDIOOUT%
 mkdir %ODINASM%
 echo.
-echo === Building ViewRotate-Example ===
+echo === Building POC-Example ===
 echo.
 :: ---------------------------------------------------------------
 :: Pass 1 — atlas folders: any folder containing a .t3s file is
