@@ -269,6 +269,19 @@ foreign ctru {
     // ── POSIX directory helpers (newlib, mapped to FS service internally) ─────
     // mkdir creates a directory; returns 0 on success, -1 if it already exists.
     mkdir  :: proc(path: cstring, mode: u32) -> i32 ---
+
+    // ── RomFS (regular functions — not static inline) ────────────────────────
+    // Mount the application's own embedded romfs under a device name.
+    // Use "romfs" as the name and then access files as "romfs:/path/to/file".
+    romfsMountSelf               :: proc(name: cstring) -> Result ---
+    // Mount a romfs image from an already-open file handle at the given byte offset.
+    romfsMountFromFile           :: proc(fd: Handle, offset: u32, name: cstring) -> Result ---
+    // Mount the current process's NCCH host romfs.
+    romfsMountFromCurrentProcess :: proc(name: cstring) -> Result ---
+    // Mount the romfs embedded in another installed title.
+    romfsMountFromTitle          :: proc(tid: u64, mediatype: FS_MediaType, name: cstring) -> Result ---
+    // Unmount a previously mounted romfs device.
+    romfsUnmount                 :: proc(name: cstring) -> Result ---
 }
 
 // ── stdio seek origin constants ──────────────────────────────
@@ -286,7 +299,7 @@ foreign import ctru_bridge "system:ctru_bridge"
 
 @(default_calling_convention = "c")
 foreign ctru_bridge {
-    // romfs — mounts the read-only file system embedded in the .3dsx
+    // romfs — static-inline convenience wrappers: mount/unmount as "romfs:"
     @(link_name = "romfs_init")
     romfsInit      :: proc() -> u32 ---
 
