@@ -10,8 +10,7 @@ package ctru
 /// Opaque libctru thread handle (internally a pointer to Thread_tag).
 Thread :: distinct rawptr
 
-/// Entry-point signature for a new thread.
-ThreadFunc :: #type proc "c" (arg: rawptr)
+// ThreadFunc is declared in svc.odin (proc "c" (arg: rawptr)).
 
 /// Exception handler — must be an ARM function that does not return.
 ExceptionHandler :: #type proc "c" (excep: rawptr, regs: rawptr)
