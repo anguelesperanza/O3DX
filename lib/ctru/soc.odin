@@ -352,7 +352,7 @@ foreign ctru {
     inet_addr :: proc(cp: cstring) -> u32 ---
 
     // Convert an in_addr to a dotted-decimal string (static buffer — not thread-safe).
-    inet_ntoa :: proc(in: in_addr) -> cstring ---
+    inet_ntoa :: proc(addr: in_addr) -> cstring ---
 
     // Convert dotted-decimal string to in_addr.  Returns 1 on success, 0 on failure.
     inet_aton :: proc(cp: cstring, inp: ^in_addr) -> i32 ---

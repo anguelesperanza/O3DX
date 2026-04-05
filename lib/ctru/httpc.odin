@@ -90,68 +90,68 @@ foreign ctru {
 
     // Open an HTTP context for the given URL and method.
     // use_defaultproxy: pass 0 to use the system proxy settings.
-    httpcOpenContext   :: proc(context: ^httpcContext, method: HTTPC_RequestMethod,
+    httpcOpenContext   :: proc(ctx: ^httpcContext, method: HTTPC_RequestMethod,
                                url: cstring, use_defaultproxy: u32) -> Result ---
 
     // Close a context.  The entire response body must be downloaded first,
     // or this will hang.  Use httpcCancelConnection to abandon a transfer.
-    httpcCloseContext  :: proc(context: ^httpcContext) -> Result ---
+    httpcCloseContext  :: proc(ctx: ^httpcContext) -> Result ---
 
     // Abort an in-progress connection/download.
-    httpcCancelConnection :: proc(context: ^httpcContext) -> Result ---
+    httpcCancelConnection :: proc(ctx: ^httpcContext) -> Result ---
 
     // ── Request headers and body ──────────────────────────────
 
     // Add a request header (e.g. "User-Agent", "application/3ds").
-    httpcAddRequestHeaderField :: proc(context: ^httpcContext,
+    httpcAddRequestHeaderField :: proc(ctx: ^httpcContext,
                                        name: cstring, value: cstring) -> Result ---
 
     // Add a URL-encoded POST form field (name=value).
-    httpcAddPostDataAscii  :: proc(context: ^httpcContext,
+    httpcAddPostDataAscii  :: proc(ctx: ^httpcContext,
                                    name: cstring, value: cstring) -> Result ---
 
     // Add a binary POST field.
-    httpcAddPostDataBinary :: proc(context: ^httpcContext,
+    httpcAddPostDataBinary :: proc(ctx: ^httpcContext,
                                    name: cstring, value: [^]u8, len: u32) -> Result ---
 
     // Set the raw POST body (replaces form fields).
-    httpcAddPostDataRaw    :: proc(context: ^httpcContext,
+    httpcAddPostDataRaw    :: proc(ctx: ^httpcContext,
                                    data: [^]u32, len: u32) -> Result ---
 
     // ── Sending the request ───────────────────────────────────
 
     // Send the request.  After this call you can poll for the response.
-    httpcBeginRequest :: proc(context: ^httpcContext) -> Result ---
+    httpcBeginRequest :: proc(ctx: ^httpcContext) -> Result ---
 
     // ── Reading the response ──────────────────────────────────
 
     // Read up to size bytes of the response body into buffer.
     // Returns HTTPC_RESULTCODE_DOWNLOADPENDING if more data remains.
-    httpcReceiveData :: proc(context: ^httpcContext, buffer: [^]u8, size: u32) -> Result ---
+    httpcReceiveData :: proc(ctx: ^httpcContext, buffer: [^]u8, size: u32) -> Result ---
 
     // Same as httpcReceiveData with a nanosecond timeout.
-    httpcReceiveDataTimeout :: proc(context: ^httpcContext, buffer: [^]u8, size: u32,
+    httpcReceiveDataTimeout :: proc(ctx: ^httpcContext, buffer: [^]u8, size: u32,
                                     timeout: u64) -> Result ---
 
     // Poll the request state (REQUEST_IN_PROGRESS or DOWNLOAD_READY).
-    httpcGetRequestState :: proc(context: ^httpcContext,
+    httpcGetRequestState :: proc(ctx: ^httpcContext,
                                   out: ^HTTPC_RequestStatus) -> Result ---
 
     // Get bytes downloaded so far and total content size.
     // contentsize will be 0 if the server did not send Content-Length.
-    httpcGetDownloadSizeState :: proc(context: ^httpcContext,
+    httpcGetDownloadSizeState :: proc(ctx: ^httpcContext,
                                        downloadedsize: ^u32,
                                        contentsize: ^u32) -> Result ---
 
     // Get the HTTP status code (200, 404, etc.).
-    httpcGetResponseStatusCode :: proc(context: ^httpcContext, out: ^u32) -> Result ---
+    httpcGetResponseStatusCode :: proc(ctx: ^httpcContext, out: ^u32) -> Result ---
 
     // Same with a nanosecond timeout.
-    httpcGetResponseStatusCodeTimeout :: proc(context: ^httpcContext,
+    httpcGetResponseStatusCodeTimeout :: proc(ctx: ^httpcContext,
                                                out: ^u32, timeout: u64) -> Result ---
 
     // Get a response header value by name (e.g. "Content-Type").
-    httpcGetResponseHeader :: proc(context: ^httpcContext, name: cstring,
+    httpcGetResponseHeader :: proc(ctx: ^httpcContext, name: cstring,
                                     value: [^]u8, valuebuf_maxsize: u32) -> Result ---
 
     // ── Convenience download helper ───────────────────────────
@@ -159,7 +159,7 @@ foreign ctru {
     // Download the entire response body into buffer in a loop.
     // Handles the DOWNLOADPENDING loop internally.
     // downloadedsize receives the total bytes written.
-    httpcDownloadData :: proc(context: ^httpcContext, buffer: [^]u8, size: u32,
+    httpcDownloadData :: proc(ctx: ^httpcContext, buffer: [^]u8, size: u32,
                                downloadedsize: ^u32) -> Result ---
 
     // ── SSL / TLS options ─────────────────────────────────────
@@ -167,32 +167,32 @@ foreign ctru {
     // HTTPC uses SSLCOPT_* flags from sslc.odin.
 
     // Add a DER-encoded trusted root CA certificate.
-    httpcAddTrustedRootCA :: proc(context: ^httpcContext, cert: [^]u8, certsize: u32) -> Result ---
+    httpcAddTrustedRootCA :: proc(ctx: ^httpcContext, cert: [^]u8, certsize: u32) -> Result ---
 
     // Add one of the built-in root CA certificates (see SSLC_DefaultRootCert).
     // Call this for HTTPS connections to well-known CAs.
-    httpcAddDefaultCert :: proc(context: ^httpcContext, certID: SSLC_DefaultRootCert) -> Result ---
+    httpcAddDefaultCert :: proc(ctx: ^httpcContext, certID: SSLC_DefaultRootCert) -> Result ---
 
     // Attach a RootCertChain built with sslcCreateRootCertChain / httpcCreateRootCertChain.
-    httpcSelectRootCertChain :: proc(context: ^httpcContext,
+    httpcSelectRootCertChain :: proc(ctx: ^httpcContext,
                                       RootCertChain_contexthandle: u32) -> Result ---
 
     // Set the SSL option flags (SSLCOPT_DisableVerify, SSLCOPT_TLSv10, etc.).
-    httpcSetSSLOpt :: proc(context: ^httpcContext, options: u32) -> Result ---
+    httpcSetSSLOpt :: proc(ctx: ^httpcContext, options: u32) -> Result ---
 
     // Clear specific SSL option flags.
-    httpcSetSSLClearOpt :: proc(context: ^httpcContext, options: u32) -> Result ---
+    httpcSetSSLClearOpt :: proc(ctx: ^httpcContext, options: u32) -> Result ---
 
     // ── Client certificates ───────────────────────────────────
 
-    httpcSetClientCert :: proc(context: ^httpcContext,
+    httpcSetClientCert :: proc(ctx: ^httpcContext,
                                 cert: [^]u8, certsize: u32,
                                 privk: [^]u8, privk_size: u32) -> Result ---
 
-    httpcSetClientCertDefault :: proc(context: ^httpcContext,
+    httpcSetClientCertDefault :: proc(ctx: ^httpcContext,
                                        certID: SSLC_DefaultClientCert) -> Result ---
 
-    httpcSetClientCertContext :: proc(context: ^httpcContext,
+    httpcSetClientCertContext :: proc(ctx: ^httpcContext,
                                        ClientCert_contexthandle: u32) -> Result ---
 
     // ── Root cert chain management ────────────────────────────
@@ -222,5 +222,5 @@ foreign ctru {
 
     // ── Keep-Alive ────────────────────────────────────────────
 
-    httpcSetKeepAlive :: proc(context: ^httpcContext, option: HTTPC_KeepAlive) -> Result ---
+    httpcSetKeepAlive :: proc(ctx: ^httpcContext, option: HTTPC_KeepAlive) -> Result ---
 }

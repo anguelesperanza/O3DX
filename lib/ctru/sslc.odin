@@ -81,51 +81,51 @@ foreign ctru {
     // Wrap an already-connected SOC socket fd in a TLS session.
     // input_opt: bitmask of SSLCOPT_* flags.
     // hostname:  server name for SNI and certificate verification.
-    sslcCreateContext  :: proc(context: ^sslcContext, sockfd: i32, input_opt: u32, hostname: cstring) -> Result ---
+    sslcCreateContext  :: proc(ctx: ^sslcContext, sockfd: i32, input_opt: u32, hostname: cstring) -> Result ---
 
     // Destroy the TLS context.  The underlying sockfd must be closed separately.
-    sslcDestroyContext :: proc(context: ^sslcContext) -> Result ---
+    sslcDestroyContext :: proc(ctx: ^sslcContext) -> Result ---
 
     // Perform the TLS handshake.  Blocks until the connection is ready for I/O.
     // internal_retval and out may be nil.
-    sslcStartConnection :: proc(context: ^sslcContext, internal_retval: ^i32, out: ^u32) -> Result ---
+    sslcStartConnection :: proc(ctx: ^sslcContext, internal_retval: ^i32, out: ^u32) -> Result ---
 
     // Receive up to len bytes over TLS.
     // Returns bytes received on success, or an error Result.
     // Set peek=true to inspect data without consuming it (like MSG_PEEK).
-    sslcRead  :: proc(context: ^sslcContext, buf: rawptr, len: uint, peek: bool) -> Result ---
+    sslcRead  :: proc(ctx: ^sslcContext, buf: rawptr, len: uint, peek: bool) -> Result ---
 
     // Send len bytes over TLS.
     // Returns bytes sent on success, or an error Result.
-    sslcWrite :: proc(context: ^sslcContext, buf: rawptr, len: uint) -> Result ---
+    sslcWrite :: proc(ctx: ^sslcContext, buf: rawptr, len: uint) -> Result ---
 
     // ── Context options ───────────────────────────────────────
 
     // Attach a RootCertChain to this context (created with sslcCreateRootCertChain).
-    sslcContextSetRootCertChain :: proc(context: ^sslcContext, handle: u32) -> Result ---
+    sslcContextSetRootCertChain :: proc(ctx: ^sslcContext, handle: u32) -> Result ---
 
     // Attach a client certificate context.
-    sslcContextSetClientCert    :: proc(context: ^sslcContext, handle: u32) -> Result ---
+    sslcContextSetClientCert    :: proc(ctx: ^sslcContext, handle: u32) -> Result ---
 
     // Attach a cert chain from sslcCreate8CertChain.
-    sslcContextSetHandle8       :: proc(context: ^sslcContext, handle: u32) -> Result ---
+    sslcContextSetHandle8       :: proc(ctx: ^sslcContext, handle: u32) -> Result ---
 
     // Clear specific SSL option bits on the context.
-    sslcContextClearOpt :: proc(context: ^sslcContext, bitmask: u32) -> Result ---
+    sslcContextClearOpt :: proc(ctx: ^sslcContext, bitmask: u32) -> Result ---
 
     // Get the negotiated protocol and cipher suite strings (after sslcStartConnection).
-    sslcContextGetProtocolCipher :: proc(context: ^sslcContext,
+    sslcContextGetProtocolCipher :: proc(ctx: ^sslcContext,
                                          outprotocols: [^]u8, outprotocols_maxsize: u32,
                                          outcipher: [^]u8,    outcipher_maxsize: u32) -> Result ---
 
     // Read an internal context state value.
-    sslcContextGetState :: proc(context: ^sslcContext, out: ^u32) -> Result ---
+    sslcContextGetState :: proc(ctx: ^sslcContext, out: ^u32) -> Result ---
 
     // Initialise shared memory for a context (buf must be 0x1000-aligned).
-    sslcContextInitSharedmem :: proc(context: ^sslcContext, buf: [^]u8, size: u32) -> Result ---
+    sslcContextInitSharedmem :: proc(ctx: ^sslcContext, buf: [^]u8, size: u32) -> Result ---
 
     // Add a certificate to a context (format/use TBD per 3dbrew).
-    sslcAddCert :: proc(context: ^sslcContext, buf: [^]u8, size: u32) -> Result ---
+    sslcAddCert :: proc(ctx: ^sslcContext, buf: [^]u8, size: u32) -> Result ---
 
     // ── Root cert chains ──────────────────────────────────────
 
