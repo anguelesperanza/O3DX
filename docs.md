@@ -20,6 +20,8 @@ Covers every binding package, their nuances, and the hard-won lessons from shipp
 11. [Input](#input)
 12. [Build System](#build-system)
 13. [Common Gotchas](#common-gotchas)
+14. [Camera — CAM service](#camera--cam-service)
+15. [Microphone — MIC service](#microphone--mic-service)
 
 ---
 
@@ -882,3 +884,154 @@ loop, use a labeled break: `break loop_label`. This is different from C, where
 This is the standard path that the Homebrew Launcher expects for app data.
 Always call `ctru.mkdir` before `fopen` with `"wb"` — the directory may not exist
 on first launch.
+
+---
+
+## Camera — CAM service
+
+> Tested and confirmed working on 3DS LL hardware.
+> The example is a port of the [devkitPro 3DS camera/video example](https://github.com/devkitPro/3ds-examples/blob/master/camera/video/source/main.c).
+
+### Correct DMA setup — use `CAMU_GetMaxBytes`, not `CAMU_GetMaxLines`
+
+`CAMU_GetMaxLines` fails silently for 400×240 (the CTR top-screen resolution) because the
+image size (192 000 bytes) exceeds the function's internal 184 320-byte threshold. It returns
+an error without writing to `*maxLines`, leaving `transferUnit = 0`. Passing 0 to
+`CAMU_SetReceiving` causes it to fail without filling the event handle, and the subsequent
+`svcWaitSynchronization(handle=0, max_timeout)` causes a kernel panic that hard-crashes the console.
+
+The correct approach uses `CAMU_GetMaxBytes` and `CAMU_SetTransferBytes`:
+
+```odin
+bufSize: u32
+ctru.CAMU_GetMaxBytes(&bufSize, WIDTH, HEIGHT)
+ctru.CAMU_SetTransferBytes(ctru.CAM_PORT_BOTH, bufSize, WIDTH, HEIGHT)
+// later, in the capture loop:
+ctru.CAMU_SetReceiving(&event, buf, ctru.CAM_PORT_CAM1, SCREEN_SIZE, i16(bufSize))
+```
+
+### Continuous capture with 4-handle event loop
+
+Unlike a simple per-frame start/stop pattern, the recommended approach starts the camera once
+and uses `svcWaitSynchronizationN` to multiplex four handles per frame:
+
+| Index | Handle | Meaning |
+|-------|--------|---------|
+| 0 | `CAMU_GetBufferErrorInterruptEvent(CAM_PORT_CAM1)` | DMA error on CAM1 |
+| 1 | `CAMU_GetBufferErrorInterruptEvent(CAM_PORT_CAM2)` | DMA error on CAM2 |
+| 2 | `CAMU_SetReceiving(CAM_PORT_CAM1)` | Frame ready from CAM1 |
+| 3 | `CAMU_SetReceiving(CAM_PORT_CAM2)` | Frame ready from CAM2 |
+
+When an error event fires (index 0 or 1), close the corresponding receive handle, set a
+`captureInterrupted` flag, and call `CAMU_StartCapture` again next iteration. When a receive
+event fires (index 2 or 3), close and zero the handle so it gets re-registered next frame.
+
+```odin
+ctru.svcWaitSynchronizationN(&index, &events[0], 4, false, WAIT_TIMEOUT)
+switch index {
+case 0: // CAM1 buffer error
+    ctru.svcCloseHandle(events[2]); events[2] = 0
+    captureInterrupted = true; continue
+case 2: // CAM1 frame ready
+    ctru.svcCloseHandle(events[2]); events[2] = 0
+    // blit events[2]'s buffer to screen
+}
+```
+
+### RGB565 → BGR8 blit
+
+`gfxInitDefault` sets the top screen to BGR8 (3 bytes/pixel). The camera outputs RGB565
+(2 bytes/pixel, row-major). A conversion blit with y-flip and column-major reordering is required:
+
+```odin
+// RGB565: bits[15:11]=R, bits[10:5]=G, bits[4:0]=B
+// BGR8 framebuffer: byte 0=B, byte 1=G, byte 2=R
+for j in 0..<HEIGHT {
+    for i in 0..<WIDTH {
+        draw_y := HEIGHT - j          // y-flip
+        v      := (draw_y + i * HEIGHT) * 3  // column-major index
+        data   := img[j * WIDTH + i]
+        fb[v]   = u8((data & 0x1F) << 3)          // B from RGB565
+        fb[v+1] = u8(((data >> 5) & 0x3F) << 2)   // G
+        fb[v+2] = u8(((data >> 11) & 0x1F) << 3)  // R from RGB565
+    }
+}
+```
+
+### Camera init order
+
+```odin
+ctru.camInit()
+ctru.CAMU_SetSize(ctru.CAM_SELECT_OUT1_OUT2, .CTR_TOP_LCD, .A)
+ctru.CAMU_SetOutputFormat(ctru.CAM_SELECT_OUT1_OUT2, .RGB_565, .A)
+ctru.CAMU_SetFrameRate(ctru.CAM_SELECT_OUT1_OUT2, .RATE_30)
+ctru.CAMU_SetNoiseFilter(ctru.CAM_SELECT_OUT1_OUT2, true)
+ctru.CAMU_SetAutoExposure(ctru.CAM_SELECT_OUT1_OUT2, true)
+ctru.CAMU_SetAutoWhiteBalance(ctru.CAM_SELECT_OUT1_OUT2, true)
+ctru.CAMU_SetTrimming(ctru.CAM_PORT_CAM1, false)
+ctru.CAMU_SetTrimming(ctru.CAM_PORT_CAM2, false)
+// Get DMA byte size BEFORE Activate:
+ctru.CAMU_GetMaxBytes(&bufSize, WIDTH, HEIGHT)
+ctru.CAMU_SetTransferBytes(ctru.CAM_PORT_BOTH, bufSize, WIDTH, HEIGHT)
+ctru.CAMU_Activate(ctru.CAM_SELECT_OUT1_OUT2)
+```
+
+---
+
+## Microphone — MIC service
+
+> Tested and confirmed working on 3DS LL hardware.
+> The example is a port of the [devkitPro 3DS audio/mic example](https://github.com/devkitPro/3ds-examples/blob/master/audio/mic/source/main.c).
+
+### Buffer must be page-aligned heap memory
+
+`micInit` passes the buffer to the kernel as a shared-memory object. The 3DS kernel requires
+shared memory to start on a 0x1000-byte (4096-byte) page boundary.
+
+- ❌ `linearAlloc` — only 16-byte alignment, will kernel-panic
+- ✅ `memalign(0x1000, size)` — page-aligned regular heap (matches devkitPro example)
+
+```odin
+micBuf := cast([^]u8)ctru.memalign(0x1000, uint(MIC_BUF_SIZE))
+defer ctru.free(cast(rawptr)micBuf)
+
+ctru.micInit(micBuf, MIC_BUF_SIZE)
+dataSize := ctru.micGetSampleDataSize()  // call AFTER micInit
+```
+
+### Correct init order
+
+```odin
+// 1. Allocate page-aligned buffer
+// 2. micInit
+// 3. micGetSampleDataSize()   ← AFTER micInit, not computed manually
+// 4. MICU_SetGain
+// 5. MICU_StartSampling with dataSize from step 3
+```
+
+Do not compute `dataSize` as `bufferSize - 4` manually — always read it from `micGetSampleDataSize()`
+after `micInit` has configured the shared memory.
+
+### Ring buffer read pattern
+
+`micGetLastSampleOffset()` returns the current write-head byte position within the buffer.
+Advance the read-head one byte at a time, wrapping at `dataSize`:
+
+```odin
+writePos := ctru.micGetLastSampleOffset()
+for readPos != writePos {
+    lo := u16(micBuf[readPos])
+    readPos = (readPos + 1) % dataSize
+    hi := u16(micBuf[readPos])
+    readPos = (readPos + 1) % dataSize
+    sample := i16(lo | (hi << 8))
+    // process sample...
+}
+```
+
+### Recommended buffer size and sample rate
+
+Use at least 0x30000 bytes (192 KB) as the ring buffer — this is the size used in the official
+devkitPro example. At `RATE_16360` (16 360 Hz PCM16) this gives about 6 seconds of buffer before
+wrapping. Smaller buffers (e.g. 0x8000) can wrap in under a second and may cause the read-head
+to lap the write-head.

@@ -26,7 +26,10 @@ package ctru
 //   defer linearFree(buf)
 //
 //   event: Handle
-//   CAMU_SetReceiving(&event, buf, PORT_CAM1, imgSize, s16(512))
+//   bufSize: u32
+//   CAMU_GetMaxBytes(&bufSize, 320, 240)
+//   CAMU_SetTransferBytes(PORT_CAM1, bufSize, 320, 240)
+//   CAMU_SetReceiving(&event, buf, PORT_CAM1, imgSize, s16(bufSize))
 //   CAMU_StartCapture(PORT_CAM1)
 //   svcWaitSynchronization(event, max(i64))
 //   svcCloseHandle(event)
@@ -287,7 +290,9 @@ foreign ctru {
 
     // Begin receiving one frame into dst.
     // event is signaled when the transfer completes.
-    // transferUnit: number of bytes per DMA transfer (typically 512 or 1024).
+    // transferUnit: bytes per DMA transfer — use (s16)bufSize from CAMU_GetMaxBytes.
+    // Call CAMU_SetTransferBytes first to configure the port, then pass the same
+    // bufSize value (cast to i16) here.
     CAMU_SetReceiving :: proc(event: ^Handle, dst: rawptr, port: u32,
                                imageSize: u32, transferUnit: i16) -> Result ---
 

@@ -252,8 +252,9 @@ foreign ctru {
     printf   :: proc(fmt: cstring, #c_vararg args: ..any) -> i32 ---
     sprintf  :: proc(buf: [^]u8, fmt: cstring, #c_vararg args: ..any) -> i32 ---
     snprintf :: proc(buf: [^]u8, n: uint, fmt: cstring, #c_vararg args: ..any) -> i32 ---
-    malloc  :: proc(size: uint) -> rawptr ---
-    free    :: proc(ptr: rawptr) ---
+    malloc   :: proc(size: uint) -> rawptr ---
+    memalign :: proc(alignment: uint, size: uint) -> rawptr ---
+    free     :: proc(ptr: rawptr) ---
     memset  :: proc(ptr: rawptr, value: i32, size: uint) -> rawptr ---
     memcpy  :: proc(dst: rawptr, src: rawptr, size: uint) -> rawptr ---
 

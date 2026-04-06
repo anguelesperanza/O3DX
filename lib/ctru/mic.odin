@@ -5,28 +5,30 @@ package ctru
 // 3ds/services/mic.h
 //
 // Records PCM audio from the 3DS built-in microphone into a
-// shared memory ring buffer.  The buffer must be allocated with
-// linearAlloc() and be 0x1000-byte aligned.
+// shared memory ring buffer.  The buffer must be 0x1000-byte (page)
+// aligned for kernel shared-memory mapping.  Use memalign(0x1000, size)
+// from the regular heap — NOT linearAlloc (only 16-byte aligned).
 //
 // Simple recording loop:
 //
-//   BUF_SIZE :: u32(0x8000)  // 32 KB ring buffer
-//   buf := cast([^]u8)linearAlloc(BUF_SIZE)
-//   defer linearFree(buf)
+//   BUF_SIZE :: u32(0x30000)  // 192 KB — devkitPro recommended size
+//   buf := cast([^]u8)memalign(0x1000, BUF_SIZE)
+//   defer free(buf)
 //
-//   ctru.micInit(buf, BUF_SIZE)
-//   defer ctru.micExit()
+//   micInit(buf, BUF_SIZE)
+//   defer micExit()
+//   dataSize := micGetSampleDataSize()  // call AFTER micInit
 //
-//   ctru.MICU_SetGain(160)   // 0..160
-//   ctru.MICU_StartSampling(.PCM16_SIGNED, .RATE_16360,
-//                            0, BUF_SIZE - 4, true)  // loop
+//   MICU_SetGain(80)
+//   MICU_StartSampling(.PCM16_SIGNED, .RATE_16360, 0, dataSize, true)
+//   defer MICU_StopSampling()
 //
-//   for ctru.aptMainLoop() {
-//       offset := ctru.micGetLastSampleOffset()
-//       // read from buf[offset] ...
-//       if done { break }
+//   readPos: u32 = 0
+//   for aptMainLoop() {
+//       writePos := micGetLastSampleOffset()
+//       // advance readPos toward writePos, wrapping at dataSize
+//       readPos = (readPos + 1) % dataSize
 //   }
-//   ctru.MICU_StopSampling()
 // ============================================================
 
 // ── Enums ─────────────────────────────────────────────────────
