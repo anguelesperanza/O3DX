@@ -4,13 +4,12 @@
 
 Special thanks to **Ske** (https://codeberg.org/ske/3ds-odin) for creating the original Codeberg repository and proof-of-concept that this project builds on.
 
+(Developer Note) This is still very much so a work in progress.
+
 (Developer Note) These `.md` files were written by Claude as part of the AI testing experiment I was doing. Information in here is based on the assumptions and informaiton it uncovered.
 Not everything may be correct, and something may be missing nuances or are simply wrong entirely. As you should with all AI explinations, take it with a grain of salt
 until you are able to verify everything you need yourself directly. It is better to use it as a guide rather than a source of truth.
 
-(Developer Note) I was not able to properly test / implement everything I wanted. There is enough to make a 2D game at least and there functions for 3DS are there as well.
-No skyboxes implementation on `tritex`, and no 3D game example (though there are 3D examples). My SD card died during the development pretty much after finishing the `FlappyClone` game example
-and I do not have a suitable replacement at this time. 
  
 ---
 
@@ -90,6 +89,10 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── Lighting-Example/       ← Citro3D: PICA200 hardware lighting, normalquat, LightEnv/Light/LUT ✅ (Phase 9)
 │   ├── Audio-Example/          ← NDSP audio: WAV from romfs, looping playback, volume control ✅ (Phase 11)
 │   ├── SaveData-Example/       ← FS service: read/write save struct to SD card ✅ (Phase 11)
+│   ├── Camera-Example/         ← CAM service: dual-camera live feed, BGR8 blit, 3D slider stereo ✅ (Phase 12)
+│   ├── Microphone-Example/     ← MIC service: PCM16 ring buffer, amplitude VU meter ✅ (Phase 12)
+│   ├── NFC-Example/            ← NFC service: amiibo/NFC tag detection ✅ (Phase 12)
+│   ├── UDS-Example/            ← UDS service: local wireless network scan/join ⚠️ (Phase 12 — untested, requires two devices)
 │   └── Games/
 │       └── FlappyClone/        ← Full 2D game: sprites, animation, physics, audio, parallax, save data ✅
 │
@@ -737,6 +740,68 @@ remain usable from Odin since `FS_Archive` is always their first argument.
 
 This pattern is identical to how Audio-Example loads WAV data from romfs — C stdio is the
 proven, safe path for file I/O from Odin on 3DS.
+
+---
+
+### ✅ Phase 12 — Hardware peripheral bindings: Camera, Microphone, NFC, UDS
+
+Four new bindings added to `lib/ctru/`:
+
+| File | Contents |
+|---|---|
+| `cam.odin` | Full CAM service bindings — camera init, size/format/framerate config, DMA capture, transfer-byte control |
+| `mic.odin` | Full MIC service bindings — PCM ring buffer recording, gain control, sample rate selection |
+| `nfc.odin` | NFC service bindings — tag/amiibo detection, state events |
+| `uds.odin` | UDS (local wireless) service bindings — network scan, create, join, send/receive |
+
+> **Camera and Microphone have been tested and confirmed working on 3DS LL hardware.**
+> They are ports of the official devkitPro examples listed below.
+> NFC has been tested and confirmed working. UDS builds but is untested (requires two devices).
+
+**Camera-Example** — dual-camera live feed on the top screen:
+- Based on the [devkitPro 3DS camera/video example](https://github.com/devkitPro/3ds-examples/blob/master/camera/video/source/main.c)
+- Both outer cameras run simultaneously via `PORT_BOTH`
+- Uses `CAMU_GetMaxBytes` + `CAMU_SetTransferBytes` to configure DMA (not `GetMaxLines`)
+- Continuous capture with `svcWaitSynchronizationN` across 4 handles (2 error + 2 receive events)
+- Buffer errors trigger automatic capture restart (`captureInterrupted` flag)
+- RGB565 → BGR8 blit via `write_picture_rgb565` (column-major framebuffer, y-flip)
+- 3D slider support: both cameras blitted to left/right eye when slider > 0
+
+**Microphone-Example** — live amplitude VU meter:
+- Based on the [devkitPro 3DS audio/mic example](https://github.com/devkitPro/3ds-examples/blob/master/audio/mic/source/main.c)
+- Ring buffer allocated with `memalign(0x1000, size)` — page alignment required for kernel shared-memory mapping
+- `micGetSampleDataSize()` called after `micInit` to get usable buffer size
+- Byte-at-a-time ring buffer scan advancing read-head toward write-head
+- Peak decay smoothing for stable bar display
+- UP/DOWN controls mic gain (0–160)
+
+#### Phase 12 implementation notes
+
+**Camera: `CAMU_GetMaxBytes` not `CAMU_GetMaxLines`**
+
+`CAMU_GetMaxLines` fails for 400×240 (image size 192 000 bytes > the 184 320-byte internal limit),
+leaving `transferUnit = 0`, which causes `CAMU_SetReceiving` to fail and `svcWaitSynchronization`
+to block forever on a zero handle — a kernel panic. The correct approach is:
+
+```odin
+bufSize: u32
+CAMU_GetMaxBytes(&bufSize, WIDTH, HEIGHT)          // always succeeds
+CAMU_SetTransferBytes(CAM_PORT_BOTH, bufSize, WIDTH, HEIGHT)
+// ... in the receive call:
+CAMU_SetReceiving(&event, buf, PORT_CAM1, SCREEN_SIZE, i16(bufSize))
+```
+
+**Microphone: page-aligned heap allocation**
+
+`micInit` maps the buffer as a kernel shared-memory object. The 3DS kernel requires shared
+memory to start on a 0x1000-byte (4096-byte) page boundary. `linearAlloc` only guarantees
+16-byte alignment and will silently fail or kernel-panic. Use `memalign(0x1000, size)` from
+the regular heap instead:
+
+```odin
+micBuf := cast([^]u8)ctru.memalign(0x1000, uint(MIC_BUF_SIZE))
+defer ctru.free(cast(rawptr)micBuf)
+```
 
 ---
 

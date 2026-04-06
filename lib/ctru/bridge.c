@@ -81,3 +81,43 @@ bool ndsp_chn_iir_biquad_notch(int id, uint32_t f0, uint32_t Q) {
 bool ndsp_chn_iir_biquad_peq(int id, uint32_t f0, uint32_t Q, uint32_t gain) {
     return ndspChnIirBiquadSetParamsPeakingEqualizer(id, u2f(f0), u2f(Q), u2f(gain));
 }
+
+// ----------------------------------------------------------------
+// synchronization — CondVar_Signal and CondVar_Broadcast are
+// static inline in <3ds/synchronization.h>.
+// ----------------------------------------------------------------
+
+void condvar_signal(CondVar* cv)    { CondVar_Signal(cv); }
+void condvar_broadcast(CondVar* cv) { CondVar_Broadcast(cv); }
+
+// ----------------------------------------------------------------
+// thread — threadOnException is static inline in <3ds/thread.h>.
+// Sets the exception handler for the current thread by writing
+// directly into Thread Local Storage slots 0x40–0x48.
+// ----------------------------------------------------------------
+
+void thread_on_exception(ExceptionHandler handler, void* stack_top, ERRF_ExceptionData* exception_data) {
+    threadOnException(handler, stack_top, exception_data);
+}
+
+// ----------------------------------------------------------------
+// swkbd — swkbdSetPasswordMode, swkbdSetValidation,
+// swkbdSetNumpadKeys, and swkbdGetResult are static inline in
+// <3ds/applets/swkbd.h>; they directly access SwkbdState fields.
+// ----------------------------------------------------------------
+
+void swkbd_set_password_mode(SwkbdState* swkbd, SwkbdPasswordMode mode) {
+    swkbdSetPasswordMode(swkbd, mode);
+}
+
+void swkbd_set_validation(SwkbdState* swkbd, SwkbdValidInput validInput, uint32_t filterFlags, int maxDigits) {
+    swkbdSetValidation(swkbd, validInput, filterFlags, maxDigits);
+}
+
+void swkbd_set_numpad_keys(SwkbdState* swkbd, int left, int right) {
+    swkbdSetNumpadKeys(swkbd, left, right);
+}
+
+SwkbdResult swkbd_get_result(SwkbdState* swkbd) {
+    return swkbdGetResult(swkbd);
+}

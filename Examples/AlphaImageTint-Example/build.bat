@@ -12,7 +12,7 @@ set MP3TOWAV=..\..\tools\mp3towav.exe
 :: ---------------------------------------------------------------
 :: Project settings — update these for your project
 :: ---------------------------------------------------------------
-set TARGET=MyGame
+set TARGET=AlphaImageTint-Example
 set DEVKITPRO=C:\devkitPro
 set DEVKITARM=%DEVKITPRO%\devkitARM
 set PATH=%DEVKITARM%\bin;%DEVKITPRO%\tools\bin;%PATH%
