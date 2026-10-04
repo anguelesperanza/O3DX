@@ -25,7 +25,7 @@ WAV_WAVE :: [4]u8{0x57, 0x41, 0x56, 0x45}  // "WAVE"
 WAV_FMT  :: [4]u8{0x66, 0x6D, 0x74, 0x20}  // "fmt "
 WAV_DATA :: [4]u8{0x64, 0x61, 0x74, 0x61}  // "data"
 
-WavInfo :: struct {
+Wav_Info :: struct {
     channels:        u16,
     sample_rate:     u32,
     bits_per_sample: u16,
@@ -37,7 +37,7 @@ WavInfo :: struct {
 // load_wav opens `path` via C stdio (romfs:/ is mounted by romfsInit),
 // parses the RIFF/WAVE header, and DMA-copies the PCM data into a
 // linearAlloc'd buffer.  Returns true on success.
-load_wav :: proc "contextless" (path: cstring, info: ^WavInfo) -> bool {
+load_wav :: proc "contextless" (path: cstring, info: ^Wav_Info) -> bool {
     f := ctru.fopen(path, "rb")
     if f == nil do return false
 
@@ -45,11 +45,26 @@ load_wav :: proc "contextless" (path: cstring, info: ^WavInfo) -> bool {
     riff_id:   [4]u8
     riff_size: u32
     wave_id:   [4]u8
-    if ctru.fread(&riff_id,   1, 4, f) != 4 { ctru.fclose(f); return false }
-    if ctru.fread(&riff_size, 4, 1, f) != 1 { ctru.fclose(f); return false }
-    if ctru.fread(&wave_id,   1, 4, f) != 4 { ctru.fclose(f); return false }
-    if riff_id != WAV_RIFF { ctru.fclose(f); return false }
-    if wave_id != WAV_WAVE { ctru.fclose(f); return false }
+    if ctru.fread(&riff_id,   1, 4, f) != 4 {
+        ctru.fclose(f)
+        return false
+    }
+    if ctru.fread(&riff_size, 4, 1, f) != 1 {
+        ctru.fclose(f)
+        return false
+    }
+    if ctru.fread(&wave_id,   1, 4, f) != 4 {
+        ctru.fclose(f)
+        return false
+    }
+    if riff_id != WAV_RIFF {
+        ctru.fclose(f)
+        return false
+    }
+    if wave_id != WAV_WAVE {
+        ctru.fclose(f)
+        return false
+    }
 
     // ── Scan sub-chunks for "fmt " and "data" ────────────────
     found_fmt  := false
@@ -70,16 +85,25 @@ load_wav :: proc "contextless" (path: cstring, info: ^WavInfo) -> bool {
             byte_rate:   u32
             block_align: u16
             bits:        u16
-            if ctru.fread(&audio_fmt,   2, 1, f) != 1 { break }
-            if ctru.fread(&channels,    2, 1, f) != 1 { break }
-            if ctru.fread(&sample_rate, 4, 1, f) != 1 { break }
-            if ctru.fread(&byte_rate,   4, 1, f) != 1 { break }
-            if ctru.fread(&block_align, 2, 1, f) != 1 { break }
-            if ctru.fread(&bits,        2, 1, f) != 1 { break }
+            if ctru.fread(&audio_fmt,   2, 1, f) != 1 do break
+            if ctru.fread(&channels,    2, 1, f) != 1 do break
+            if ctru.fread(&sample_rate, 4, 1, f) != 1 do break
+            if ctru.fread(&byte_rate,   4, 1, f) != 1 do break
+            if ctru.fread(&block_align, 2, 1, f) != 1 do break
+            if ctru.fread(&bits,        2, 1, f) != 1 do break
 
-            if audio_fmt != WAVE_FORMAT_PCM           { ctru.fclose(f); return false }
-            if channels != 1 && channels != 2         { ctru.fclose(f); return false }
-            if bits != 8 && bits != 16                { ctru.fclose(f); return false }
+            if audio_fmt != WAVE_FORMAT_PCM {
+                ctru.fclose(f)
+                return false
+            }
+            if channels != 1 && channels != 2 {
+                ctru.fclose(f)
+                return false
+            }
+            if bits != 8 && bits != 16 {
+                ctru.fclose(f)
+                return false
+            }
 
             info.channels        = channels
             info.sample_rate     = sample_rate
@@ -176,7 +200,7 @@ audio_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     }
 
     // Load WAV
-    wav: WavInfo
+    wav: Wav_Info
     if !load_wav("romfs:/audio.wav", &wav) {
         ctru.printf("ERROR: could not load romfs:/audio.wav\n\n")
         ctru.printf("The file must be an uncompressed PCM WAV:\n")

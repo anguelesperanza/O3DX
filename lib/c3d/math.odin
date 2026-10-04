@@ -182,14 +182,18 @@ Mtx_Add :: proc "contextless" (out, lhs, rhs: ^C3D_Mtx) {
     lo := transmute(^[16]f32)(lhs)
     ro := transmute(^[16]f32)(rhs)
     oo := transmute(^[16]f32)(out)
-    for i in 0..<16 { oo[i] = lo[i] + ro[i] }
+    for i in 0..<16 {
+        oo[i] = lo[i] + ro[i]
+    }
 }
 
 Mtx_Subtract :: proc "contextless" (out, lhs, rhs: ^C3D_Mtx) {
     lo := transmute(^[16]f32)(lhs)
     ro := transmute(^[16]f32)(rhs)
     oo := transmute(^[16]f32)(out)
-    for i in 0..<16 { oo[i] = lo[i] - ro[i] }
+    for i in 0..<16 {
+        oo[i] = lo[i] - ro[i]
+    }
 }
 
 // ============================================================
@@ -209,14 +213,16 @@ Mtx_MultiplyFVec4 :: proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec
 
 // Mtx_MultiplyFVec3 — multiply 3×3 submatrix by a FVec3 (v.x / logical W = 0).
 Mtx_MultiplyFVec3 :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
-    v4 := v; v4.x = 0  // zero logical W
+    v4 := v
+    v4.x = 0  // zero logical W
     return Mtx_MultiplyFVec4(mtx, v4)
 }
 
 // Mtx_MultiplyFVecH — multiply 4×3 matrix by FVec3 (sets logical W = 1 first).
 // C sets v.w = 1.0f; C's .w = Odin's .x.
 Mtx_MultiplyFVecH :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
-    v4 := v; v4.x = 1.0  // logical W = 1
+    v4 := v
+    v4.x = 1.0  // logical W = 1
     return Mtx_MultiplyFVec4(mtx, v4)
 }
 
@@ -596,69 +602,104 @@ Mtx_Inverse :: #force_inline proc(out: ^C3D_Mtx) -> f32 {
 }
 
 Mtx_FromQuat :: #force_inline proc(m: ^C3D_Mtx, q: C3D_FQuat) {
-    q_ := q; _Mtx_FromQuat_bridge(m, &q_)
+    q_ := q
+    _Mtx_FromQuat_bridge(m, &q_)
 }
 
 Mtx_LookAt :: #force_inline proc(out: ^C3D_Mtx,
                                   pos, target, up: C3D_FVec,
                                   isLeftHanded: bool) {
-    p_ := pos; t_ := target; u_ := up
+    p_ := pos
+    t_ := target
+    u_ := up
     _Mtx_LookAt_bridge(out, &p_, &t_, &u_, isLeftHanded)
 }
 
 Mtx_Rotate :: #force_inline proc(mtx: ^C3D_Mtx,
                                   axis: C3D_FVec, angle: f32, bRightSide: bool) {
-    a_ := axis; _Mtx_Rotate_bridge(mtx, &a_, angle, bRightSide)
+    a_ := axis
+    _Mtx_Rotate_bridge(mtx, &a_, angle, bRightSide)
 }
 
 Quat_Multiply :: #force_inline proc(lhs, rhs: C3D_FQuat) -> C3D_FQuat {
-    l_ := lhs; r_ := rhs; out: C3D_FQuat
-    _Quat_Multiply_bridge(&l_, &r_, &out); return out
+    l_ := lhs
+    r_ := rhs
+    out: C3D_FQuat
+    _Quat_Multiply_bridge(&l_, &r_, &out)
+    return out
 }
 
 Quat_Pow :: #force_inline proc(q: C3D_FQuat, p: f32) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_Pow_bridge(&q_, p, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_Pow_bridge(&q_, p, &out)
+    return out
 }
 
 Quat_CrossFVec3 :: #force_inline proc(q: C3D_FQuat, v: C3D_FVec) -> C3D_FVec {
-    q_ := q; v_ := v; out: C3D_FVec
-    _Quat_CrossFVec3_bridge(&q_, &v_, &out); return out
+    q_ := q
+    v_ := v
+    out: C3D_FVec
+    _Quat_CrossFVec3_bridge(&q_, &v_, &out)
+    return out
 }
 
 Quat_Rotate :: #force_inline proc(q: C3D_FQuat, axis: C3D_FVec,
                                    r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; a_ := axis; out: C3D_FQuat
-    _Quat_Rotate_bridge(&q_, &a_, r, bRightSide, &out); return out
+    q_ := q
+    a_ := axis
+    out: C3D_FQuat
+    _Quat_Rotate_bridge(&q_, &a_, r, bRightSide, &out)
+    return out
 }
 
 Quat_RotateX :: #force_inline proc(q: C3D_FQuat, r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_RotateX_bridge(&q_, r, bRightSide, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_RotateX_bridge(&q_, r, bRightSide, &out)
+    return out
 }
 
 Quat_RotateY :: #force_inline proc(q: C3D_FQuat, r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_RotateY_bridge(&q_, r, bRightSide, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_RotateY_bridge(&q_, r, bRightSide, &out)
+    return out
 }
 
 Quat_RotateZ :: #force_inline proc(q: C3D_FQuat, r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_RotateZ_bridge(&q_, r, bRightSide, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_RotateZ_bridge(&q_, r, bRightSide, &out)
+    return out
 }
 
 Quat_FromMtx :: #force_inline proc(m: ^C3D_Mtx) -> C3D_FQuat {
-    out: C3D_FQuat; _Quat_FromMtx_bridge(m, &out); return out
+    out: C3D_FQuat
+    _Quat_FromMtx_bridge(m, &out)
+    return out
 }
 
 Quat_FromPitchYawRoll :: #force_inline proc(pitch, yaw, roll: f32,
                                              bRightSide: bool) -> C3D_FQuat {
     out: C3D_FQuat
-    _Quat_FromPitchYawRoll_bridge(pitch, yaw, roll, bRightSide, &out); return out
+    _Quat_FromPitchYawRoll_bridge(pitch, yaw, roll, bRightSide, &out)
+    return out
 }
 
 Quat_LookAt :: #force_inline proc(source, target, forwardVector, upVector: C3D_FVec) -> C3D_FQuat {
-    s_ := source; t_ := target; f_ := forwardVector; u_ := upVector; out: C3D_FQuat
-    _Quat_LookAt_bridge(&s_, &t_, &f_, &u_, &out); return out
+    s_ := source
+    t_ := target
+    f_ := forwardVector
+    u_ := upVector
+    out: C3D_FQuat
+    _Quat_LookAt_bridge(&s_, &t_, &f_, &u_, &out)
+    return out
 }
 
 Quat_FromAxisAngle :: #force_inline proc(axis: C3D_FVec, angle: f32) -> C3D_FQuat {
-    a_ := axis; out: C3D_FQuat
-    _Quat_FromAxisAngle_bridge(&a_, angle, &out); return out
+    a_ := axis
+    out: C3D_FQuat
+    _Quat_FromAxisAngle_bridge(&a_, angle, &out)
+    return out
 }

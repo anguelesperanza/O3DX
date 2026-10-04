@@ -19,36 +19,36 @@ import c3d  "../../lib/c3d"
 //   B      — stop scan (from Scanning state)
 //   START  — exit
 
-NFCState :: enum u8 {
-    Idle,
-    Scanning,
-    TagInRange,
-    DataReady,
-    Error,
+NFC_State :: enum u8 {
+    IDLE,
+    SCANNING,
+    TAG_IN_RANGE,
+    DATA_READY,
+    ERROR,
 }
 
-g_nfcState: NFCState
+g_nfcState: NFC_State
 g_tagInfo:  ctru.NFC_TagInfo
 g_config:   ctru.NFC_AmiiboConfig
 
-state_color :: proc "c" (s: NFCState) -> u32 {
+state_color :: proc "c" (s: NFC_State) -> u32 {
     switch s {
-    case .Idle:       return c2d.C2D_Color32(0x88, 0x88, 0x88, 0xFF)
-    case .Scanning:   return c2d.C2D_Color32(0xFF, 0xD7, 0x00, 0xFF)
-    case .TagInRange: return c2d.C2D_Color32(0x00, 0xCC, 0xFF, 0xFF)
-    case .DataReady:  return c2d.C2D_Color32(0x00, 0xFF, 0x88, 0xFF)
-    case .Error:      return c2d.C2D_Color32(0xFF, 0x33, 0x33, 0xFF)
+    case .IDLE:         return c2d.C2D_Color32(0x88, 0x88, 0x88, 0xFF)
+    case .SCANNING:     return c2d.C2D_Color32(0xFF, 0xD7, 0x00, 0xFF)
+    case .TAG_IN_RANGE: return c2d.C2D_Color32(0x00, 0xCC, 0xFF, 0xFF)
+    case .DATA_READY:   return c2d.C2D_Color32(0x00, 0xFF, 0x88, 0xFF)
+    case .ERROR:        return c2d.C2D_Color32(0xFF, 0x33, 0x33, 0xFF)
     }
     return 0xFFFFFFFF
 }
 
-state_label :: proc "c" (s: NFCState) -> cstring {
+state_label :: proc "c" (s: NFC_State) -> cstring {
     switch s {
-    case .Idle:       return "Idle — press A to scan"
-    case .Scanning:   return "Scanning...  (B to stop)"
-    case .TagInRange: return "Tag detected, loading..."
-    case .DataReady:  return "Amiibo data ready!"
-    case .Error:      return "Error — press A to retry"
+    case .IDLE:         return "Idle — press A to scan"
+    case .SCANNING:     return "Scanning...  (B to stop)"
+    case .TAG_IN_RANGE: return "Tag detected, loading..."
+    case .DATA_READY:   return "Amiibo data ready!"
+    case .ERROR:        return "Error — press A to retry"
     }
     return ""
 }
@@ -113,7 +113,7 @@ nfc_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
         return "Unknown"
     }
 
-    g_nfcState = .Idle
+    g_nfcState = .IDLE
     tagStatePrev := ctru.NFC_TagState.Uninitialized
 
     for ctru.aptMainLoop() {
@@ -123,25 +123,25 @@ nfc_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
         if keys & ctru.KEY_START != 0 do break
 
         // ── Input ─────────────────────────────────────────────────────
-        if keys & ctru.KEY_A != 0 && g_nfcState != .Scanning && g_nfcState != .TagInRange {
+        if keys & ctru.KEY_A != 0 && g_nfcState != .SCANNING && g_nfcState != .TAG_IN_RANGE {
             rc = ctru.nfcStartScanning(ctru.NFC_STARTSCAN_DEFAULTINPUT)
             if rc == 0 {
-                g_nfcState = .Scanning
+                g_nfcState = .SCANNING
                 ctru.printf("\nStarted scanning...\n")
             } else {
-                g_nfcState = .Error
+                g_nfcState = .ERROR
                 ctru.printf("\nnfcStartScanning: 0x%08lX\n", rc)
             }
         }
 
-        if keys & ctru.KEY_B != 0 && g_nfcState == .Scanning {
+        if keys & ctru.KEY_B != 0 && g_nfcState == .SCANNING {
             ctru.nfcStopScanning()
-            g_nfcState = .Idle
+            g_nfcState = .IDLE
             ctru.printf("Scan stopped.\n")
         }
 
         // ── Poll NFC state ────────────────────────────────────────────
-        if g_nfcState == .Scanning || g_nfcState == .TagInRange {
+        if g_nfcState == .SCANNING || g_nfcState == .TAG_IN_RANGE {
             tagState: ctru.NFC_TagState
             ctru.nfcGetTagState(&tagState)
 
@@ -152,12 +152,12 @@ nfc_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
             switch tagState {
             case .InRange:
-                g_nfcState = .TagInRange
+                g_nfcState = .TAG_IN_RANGE
                 // Load the amiibo data
                 rc = ctru.nfcLoadAmiiboData()
                 if rc != 0 {
                     ctru.printf("LoadAmiiboData: 0x%08lX\n", rc)
-                    g_nfcState = .Error
+                    g_nfcState = .ERROR
                 }
 
             case .DataReady:
@@ -165,18 +165,18 @@ nfc_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
                 ctru.nfcGetTagInfo(&g_tagInfo)
                 rc = ctru.nfcGetAmiiboConfig(&g_config)
                 if rc == 0 {
-                    g_nfcState = .DataReady
+                    g_nfcState = .DATA_READY
                     ctru.nfcStopScanning()
                     ctru.printf("Amiibo loaded!\n")
                 } else {
                     ctru.printf("GetAmiiboConfig: 0x%08lX\n", rc)
-                    g_nfcState = .Error
+                    g_nfcState = .ERROR
                 }
 
             case .OutOfRange:
-                if g_nfcState != .DataReady {
+                if g_nfcState != .DATA_READY {
                     ctru.printf("Tag moved out of range.\n")
-                    g_nfcState = .Scanning
+                    g_nfcState = .SCANNING
                     // Restart scanning
                     ctru.nfcStopScanning()
                     ctru.nfcStartScanning(ctru.NFC_STARTSCAN_DEFAULTINPUT)
@@ -195,7 +195,7 @@ nfc_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
         c2d.C2D_TextParse(&stateTxt, dynBuf, state_label(g_nfcState))
 
-        if g_nfcState == .DataReady {
+        if g_nfcState == .DATA_READY {
             ctru.snprintf(&l0[0], 64, "Type:    %s", amiibo_type_str(g_config.amiibo_type))
             ctru.snprintf(&l1[0], 64, "Series:  0x%02X", g_config.series)
             ctru.snprintf(&l2[0], 64, "Char:    %02X %02X %02X",
