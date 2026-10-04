@@ -3,7 +3,7 @@ package save_data_example
 import ctru "../../lib/ctru"
 
 // ============================================================
-// SaveData-Example
+// Save_Data-Example
 //
 // Demonstrates persistent save data on the SD card using C
 // stdio (fopen / fwrite / fread).  The FS service struct-by-
@@ -11,7 +11,7 @@ import ctru "../../lib/ctru"
 // so all file I/O goes through newlib's stdio layer instead —
 // the same approach proved by Audio-Example.
 //
-// Save file: sdmc:/3ds/SaveData-Example/save.bin
+// Save file: sdmc:/3ds/Save_Data-Example/save.bin
 //
 // Controls:
 //   A      — add 10 to high_score and save immediately
@@ -23,46 +23,46 @@ import ctru "../../lib/ctru"
 SAVE_MAGIC :: u32(0x53415645)  // "SAVE"
 
 // Full sdmc:/ paths for C stdio
-SAVE_DIR  : cstring = "sdmc:/3ds/SaveData-Example"
-SAVE_PATH : cstring = "sdmc:/3ds/SaveData-Example/save.bin"
+SAVE_DIR  : cstring = "sdmc:/3ds/Save_Data-Example"
+SAVE_PATH : cstring = "sdmc:/3ds/Save_Data-Example/save.bin"
 
-SaveData :: struct {
+Save_Data :: struct {
     magic:      u32,
     play_count: u32,
     high_score: u32,
     checksum:   u32, // XOR of the three fields above
 }
 
-save_checksum :: proc "contextless" (s: ^SaveData) -> u32 {
+save_checksum :: proc "contextless" (s: ^Save_Data) -> u32 {
     return s.magic ~ s.play_count ~ s.high_score
 }
 
-save_valid :: proc "contextless" (s: ^SaveData) -> bool {
+save_valid :: proc "contextless" (s: ^Save_Data) -> bool {
     return s.magic == SAVE_MAGIC && s.checksum == save_checksum(s)
 }
 
 // ── File I/O helpers (C stdio — no FS struct-by-value ABI issues) ────────────
 
-write_save :: proc "contextless" (save: ^SaveData) -> bool {
+write_save :: proc "contextless" (save: ^Save_Data) -> bool {
     f := ctru.fopen(SAVE_PATH, "wb")
     if f == nil do return false
-    written := ctru.fwrite(cast(rawptr)save, 1, uint(size_of(SaveData)), f)
+    written := ctru.fwrite(cast(rawptr)save, 1, uint(size_of(Save_Data)), f)
     ctru.fclose(f)
-    return written == uint(size_of(SaveData))
+    return written == uint(size_of(Save_Data))
 }
 
-read_save :: proc "contextless" (save: ^SaveData) -> bool {
+read_save :: proc "contextless" (save: ^Save_Data) -> bool {
     f := ctru.fopen(SAVE_PATH, "rb")
     if f == nil do return false
-    read_bytes := ctru.fread(cast(rawptr)save, 1, uint(size_of(SaveData)), f)
+    read_bytes := ctru.fread(cast(rawptr)save, 1, uint(size_of(Save_Data)), f)
     ctru.fclose(f)
-    if read_bytes != uint(size_of(SaveData)) do return false
+    if read_bytes != uint(size_of(Save_Data)) do return false
     return save_valid(save)
 }
 
 // ── Display ──────────────────────────────────────────────────
 
-refresh_display :: proc "contextless" (save: ^SaveData, status: cstring) {
+refresh_display :: proc "contextless" (save: ^Save_Data, status: cstring) {
     ctru.printf("\x1b[8;1H  Status:     %s\x1b[K",  status)
     ctru.printf("\x1b[9;1H  Play count: %u\x1b[K",  save.play_count)
     ctru.printf("\x1b[10;1H  High score: %u\x1b[K", save.high_score)
@@ -78,8 +78,8 @@ save_data_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
     // ── Static UI ────────────────────────────────────────────
     ctru.printf("\x1b[2J")
-    ctru.printf("\x1b[1;1H=== SaveData-Example ===")
-    ctru.printf("\x1b[3;1HFile: sdmc:/3ds/SaveData-Example/save.bin")
+    ctru.printf("\x1b[1;1H=== Save_Data-Example ===")
+    ctru.printf("\x1b[3;1HFile: sdmc:/3ds/Save_Data-Example/save.bin")
     ctru.printf("\x1b[5;1HSave data:")
     ctru.printf("\x1b[27;1H[A] High score +10 and save")
     ctru.printf("\x1b[28;1H[Start] Save and exit")
@@ -89,11 +89,11 @@ save_data_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     ctru.mkdir(SAVE_DIR, 0o755)
 
     // ── Load or create save data ─────────────────────────────
-    save: SaveData
+    save: Save_Data
     first_run := false
 
     if !read_save(&save) {
-        save = SaveData{
+        save = Save_Data{
             magic      = SAVE_MAGIC,
             play_count = 0,
             high_score = 0,

@@ -210,7 +210,7 @@ Use a **labeled break** to exit from inside a switch:
 ```odin
 game_loop: for ctru.aptMainLoop() {
     switch state {
-    case .Exit:
+    case .EXIT:
         break game_loop   // exits the for loop, not just the switch
     }
 }
