@@ -14,13 +14,6 @@ import c3d  "../../lib/c3d"
 //   img 3 : blend = 0.66 → strong red tint
 //   img 4 : blend = 1.0  → fully red
 
-foreign import example_c "system:example_c"
-
-@(default_calling_convention = "c")
-foreign example_c {
-    load_t3x_image :: proc(path: cstring, tex: ^c3d.C3D_Tex, subtex: ^c2d.Tex3DS_SubTexture) -> bool ---
-}
-
 @(export, link_name = "odin_main")
 plain_image_tint_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 	ctru.romfsInit()
@@ -35,7 +28,7 @@ plain_image_tint_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
 	tex:    c3d.C3D_Tex
 	subtex: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/sprite.t3x", &tex, &subtex)
+	c2d.load_t3x_image("romfs:/sprite.t3x", &tex, &subtex)
 	img := c2d.C2D_Image{tex = &tex, subtex = &subtex}
 
 	clrBg  := c2d.C2D_Color32(0x1A, 0x1A, 0x2E, 0xFF)

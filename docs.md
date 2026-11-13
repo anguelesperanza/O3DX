@@ -16,6 +16,7 @@ Covers every binding package, their nuances, and the hard-won lessons from shipp
 7. [Package: c2d](#package-c2d)
 8. [Package: audio](#package-audio)
 9. [Memory — linearAlloc vs heap](#memory--linearalloc-vs-heap)
+   - [The Odin runtime (lib/o3dx)](#the-odin-runtime-libo3dx)
 10. [File I/O — romfs and sdmc](#file-io--romfs-and-sdmc)
 11. [Input](#input)
 12. [Build System](#build-system)
@@ -631,6 +632,29 @@ GPU textures uploaded via `C3D_TexInit` or citro2d's `SpriteSheetLoad` handle th
 own allocation internally. You do not need to `linearAlloc` for textures loaded through
 the normal API.
 
+### The Odin runtime (`lib/o3dx`)
+
+"Normal heap" above means newlib's `malloc`. Odin's own `new` / `make` / `append`
+only use it once `context.allocator` points there; on `freestanding_arm32` the default
+allocator is the nil allocator. Start `odin_main` with:
+
+```odin
+import o3dx "../../lib/o3dx"
+
+context = o3dx.init()      // instead of runtime.default_context()
+```
+
+This sets the heap allocator, a temp allocator (call `free_all(context.temp_allocator)`
+once per frame), a logger for `core:log`, and an assertion handler that prints the
+message, appends it to `sdmc:/o3dx_panic.log` and traps. Thread entry points
+(`proc "c" (arg: rawptr)`) need `context = o3dx.thread_context()` instead.
+`o3dx.printf` prints to the console and to `svcOutputDebugString`.
+
+It also needs the libm bridge in the build: `lib/libm/bridge.c` compiled, and
+`objcopy --redefine-syms=lib/libm/redefine.syms` applied to the Odin object. Every
+`build.bat` in this repository does both. See README Phase 13 and
+`Examples/Runtime-Example`.
+
 ---
 
 ## File I/O — romfs and sdmc
@@ -739,8 +763,11 @@ tritex assets\images\background.png romfs\gfx\background.t3x
 :: 2. Copy audio to romfs
 xcopy /y assets\audio\*.wav romfs\audio\
 
-:: 3. Compile Odin → .o
-odin build . -target:freestanding_arm_hardfloat ...
+:: 3. Compile Odin → assembly → .o, then rename libm/libgcc float calls
+odin build . -target:freestanding_arm32 -o:speed -build-mode:asm -no-entry-point -min-link-libs -no-thread-local -microarch:mpcore
+echo .eabi_attribute 28, 1 >> FlappyClone.odin.s
+arm-none-eabi-gcc -c FlappyClone.odin.s ...
+arm-none-eabi-objcopy --redefine-syms=..\..\lib\libm\redefine.syms build\FlappyClone.odin.o
 
 :: 4. Link .o → .elf
 arm-none-eabi-gcc ...

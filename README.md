@@ -50,11 +50,15 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   │   ├── sprite.odin         ← Sprite helpers ✅ (Phase 4)
 │   │   ├── spritesheet.odin    ← SpriteSheet loading ✅ (Phase 4)
 │   │   └── bridge.c            ← ABI bridge for all float-param Citro2D functions
-│   └── c3d/
-│       ├── types.odin          ← Citro3D types + all GPU_* enums ✅
-│       ├── base.odin           ← Full C3D foreign bindings (declared) ✅
-│       ├── math.odin           ← Full FVec/Mtx/Quat math library ✅ (Phase 8)
-│       └── bridge.c            ← ABI bridge for all float-param Citro3D functions
+│   ├── c3d/
+│   │   ├── types.odin          ← Citro3D types + all GPU_* enums ✅
+│   │   ├── base.odin           ← Full C3D foreign bindings (declared) ✅
+│   │   ├── math.odin           ← Full FVec/Mtx/Quat math library ✅ (Phase 8)
+│   │   └── bridge.c            ← ABI bridge for all float-param Citro3D functions
+│   ├── o3dx/                   ← Odin runtime: allocators, logger, print, assertions ✅ (Phase 13)
+│   └── libm/
+│       ├── bridge.c            ← o3dx_* wrappers for libm / libgcc float helpers (Phase 13)
+│       └── redefine.syms       ← Renames applied to the Odin object (tools/gen_libm_syms.py)
 │
 ├── Examples/
 │   ├── Shapes-Example/         ← Basic shapes via C2D ✅
@@ -93,6 +97,7 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   ├── Microphone-Example/     ← MIC service: PCM16 ring buffer, amplitude VU meter ✅ (Phase 12)
 │   ├── NFC-Example/            ← NFC service: amiibo/NFC tag detection ✅ (Phase 12)
 │   ├── UDS-Example/            ← UDS service: local wireless network scan/join ⚠️ (Phase 12 — untested, requires two devices)
+│   ├── Runtime-Example/        ← lib/o3dx: allocators, fmt, maps, log, threads, atomics, assertions ⚠️ (Phase 13 — builds, not yet run)
 │   └── Games/
 │       └── FlappyClone/        ← Full 2D game: sprites, animation, physics, audio, parallax, save data ✅
 │
@@ -117,12 +122,13 @@ The `build.bat` in each example drives the full pipeline:
 
 ```
 Odin source
-   │  odin build . -target:freestanding_arm32 -o:speed -build-mode:asm -no-entry-point -min-link-libs -no-thread-local
+   │  odin build . -target:freestanding_arm32 -o:speed -build-mode:asm -no-entry-point -min-link-libs -no-thread-local -microarch:mpcore
    ▼
-ARM assembly (.S)
+ARM assembly (.S)  + appended `.eabi_attribute 28, 1`
    │  arm-none-eabi-gcc -march=armv6k -mfloat-abi=hard
+   │  arm-none-eabi-objcopy --redefine-syms=lib/libm/redefine.syms
    ▼
-Object files (.o)  ←── also: main.c  +  lib/*/bridge.c
+Object files (.o)  ←── also: main.c  +  lib/*/bridge.c  (ctru, c2d, c3d, libm)
    │  arm-none-eabi-gcc -specs=3dsx.specs -lcitro2d -lcitro3d -lctru
    ▼
 ELF executable
@@ -184,6 +190,7 @@ Rather than duplicating bindings in every example, all declarations live in `lib
 | `c2d`   | `../../lib/c2d`   | All Citro2D types, drawing, tinting, view transforms |
 | `c3d`   | `../../lib/c3d`   | All Citro3D types, GPU enums, frame/texture/effect functions |
 | `audio` | `../../lib/audio` | WAV loading (`linearAlloc`-backed) and NDSP clip playback helpers |
+| `o3dx`  | `../../lib/o3dx`  | The Odin runtime: heap and temp allocators, logger, print helpers, assertion handler (Phase 13) |
 
 Example usage:
 ```odin
@@ -202,7 +209,7 @@ c2d.C2D_DrawRectSolid(10, 10, 0, 80, 60, c2d.C2D_Color32(0xFF, 0, 0, 0xFF))
 > written before the aliases existed and use the full prefixed names throughout. Both styles
 > compile identically; new code should prefer the short form. See `docs.md` for the full list.
 
-Each example's `build.bat` compiles the three bridge objects (`ctru_bridge.o`, `c2d_bridge.o`, `c3d_bridge.o`) from the shared `lib/` directory and links them alongside the Odin assembly.
+Each example's `build.bat` compiles the four bridge objects (`ctru_bridge.o`, `c2d_bridge.o`, `c3d_bridge.o`, `libm_bridge.o`) from the shared `lib/` directory and links them alongside the Odin assembly.
 
 ---
 
@@ -805,6 +812,74 @@ defer ctru.free(cast(rawptr)micBuf)
 
 ---
 
+### ✅ Phase 13 — The Odin runtime (`lib/o3dx`)
+
+Ported from vito (the PS Vita bindings), which uses the same target and flags.
+On `freestanding_arm32` Odin's default allocator is the nil allocator and its
+assertion handler prints nothing, so without help `new`, `make`, `append`, maps,
+`strings.Builder`, `fmt.tprintf` and `core:log` silently do nothing, and a failed
+`assert` just traps. `lib/o3dx` fills that in:
+
+```odin
+import o3dx "../../lib/o3dx"
+
+@(export, link_name = "odin_main")
+game_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
+    context = o3dx.init()       // instead of runtime.default_context()
+    defer o3dx.shutdown()
+    for ctru.aptMainLoop() {
+        ...
+        free_all(context.temp_allocator)   // once per frame
+    }
+    return 0
+}
+```
+
+| Piece | What it does |
+|---|---|
+| Heap | `context.allocator` is newlib's `malloc` / `calloc` / `realloc` / `memalign` / `free` (integer-only calls, no bridge). libctru gives malloc a lock, so it is thread-safe. To change the heap / linear-heap split, define `u32 __ctru_heap_size` or `__ctru_linear_heap_size` in `main.c` (weak symbols in libctru). |
+| Temp allocator | A growing `runtime.Arena`, 1 MiB first block (`-define:O3DX_TEMP_ARENA_SIZE=<bytes>`). Call `free_all(context.temp_allocator)` once per frame. |
+| Other threads | Every `proc "c"` thread entry or callback needs `context = o3dx.thread_context()`. It shares the heap; its temp allocator is the heap too, because the arena is not thread-safe. |
+| Printing | `o3dx.print` / `println` / `printf` format with `core:fmt` into a 1 KiB stack buffer and write to stdout (the console, once `consoleInit` has run) and `svcOutputDebugString` (the emulator log). Switch either off with `o3dx.print_to_console` / `o3dx.print_to_debug`. `context.logger` is set, so `core:log` works. |
+| Assertions and `panic` | The message and location are printed, appended to `sdmc:/o3dx_panic.log`, and then the program traps (Luma3DS exception screen on hardware). `o3dx.panic_action = .Exit` exits quietly instead. Bounds-check failures do not go through this handler: the runtime traps on those directly. |
+| Initialisers | `o3dx.init()` runs Odin's global initialisers and `@(init)` procedures (`runtime._startup_runtime`). Nothing else does, because the build uses `-no-entry-point`. |
+
+**libm / libgcc float bridge (`lib/libm`).** `core:fmt` and `core:strconv` make LLVM
+call libgcc helpers such as `__fixdfdi`, `__fixsfdi` and `__floatundidf` (float to and
+from 64-bit integer). devkitARM's copies are hard-float, so a direct call from
+soft-float Odin returns garbage, the same problem the citro bridges solve. Every
+`build.bat` now runs `objcopy --redefine-syms=lib/libm/redefine.syms` on the Odin
+object, which renames every libm function and float libgcc helper to an `o3dx_*`
+wrapper in `lib/libm/bridge.c`. Only the Odin object is renamed, so citro2d, citro3d
+and libctru keep calling the real functions. A float function with no wrapper fails at
+link time (`undefined reference to 'o3dx_<name>'`) instead of misbehaving; add it to
+`lib/libm/bridge.c`. `tools/gen_libm_syms.py` regenerates the list from devkitARM's
+`libm.a`.
+
+**Build flag changes (from Matchbox's copy of O3DX).** `odin build` now passes
+`-microarch:mpcore` (the 3DS's ARM11 MPCore; `math.sqrt` becomes a `vsqrt`
+instruction), and `build.bat` appends `.eabi_attribute 28, 1` to the Odin assembly so
+`ld` accepts the object next to devkitARM's hard-float objects whatever the link order.
+Without it, an Odin object that comes first on the link line fails with
+`uses VFP register arguments, ... does not`.
+
+**Bindings brought over from Matchbox.** `c2d.load_t3x_image` (`LoadT3xImage` in
+`lib/c2d/bridge.c`) loads the first subtexture of a `.t3x`; the image examples now use
+it instead of a `main.c` helper that no longer existed. `lib/c3d` gained
+`sinf` / `cosf` / `tanf` / `asinf` / `acosf` / `atanf` / `atan2f` / `powf` / `fmodf` /
+`sqrtf` / `sincosf` bridges. `lib/audio`'s clip type is now `Audio_Clip`.
+
+**Runtime-Example** runs twelve checks (heap, `[dynamic]`, `map`, `strings.Builder`,
+float formatting, `strconv`, `slice.sort`, aligned and 8 MiB allocations,
+`core:math` / `linalg` with an `f64` to `i64` conversion, `core:log`, a second thread
+with atomics) and shows PASS or FAIL for each on the top screen; the bottom screen is
+the console. `Y` fails an assertion on purpose; `START` exits.
+
+> Status: every example builds and links. Runtime-Example has not yet been run on
+> hardware or in an emulator.
+
+---
+
 ## Tools
 
 ### `tools/tritex.exe` (formerly `png2t3x`)
@@ -963,4 +1038,6 @@ xcopy /y assets\audio\*.wav romfs\audio\
 ## Foreign Imports note
 
 You will notice foreign imports for things that already exist in standard Odin (e.g. `printf`).
-Because we compile with `-no-entry-point` and `-no-thread-local` for the freestanding target, the standard Odin runtime is not available. Every OS-level or C-runtime function must be explicitly imported from libctru.
+The examples were written before `lib/o3dx` existed and call libctru / newlib directly. With
+`context = o3dx.init()` at the top of `odin_main`, the Odin runtime and `core:` packages
+(`fmt`, `log`, `strings`, maps, dynamic arrays, ...) work as well; see Phase 13.

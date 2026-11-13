@@ -299,10 +299,34 @@ void c3d_render_target_clear(void* target, C3D_ClearBits clearBits,
 }
 
 // ----------------------------------------------------------------
-// sqrtf bridge — Odin soft-float can't call libm sqrtf directly.
+// libm bridges — Odin soft-float can't call libm directly: math.sin,
+// math.cos etc. lower to sinf/cosf, which read their argument from s0
+// (hard-float) while Odin puts it in r0. The call links and returns
+// garbage. Odin side: c3d/math.odin, "libm bridge" section.
+//
+// odin_sqrtf is no longer needed with -microarch:mpcore (math.sqrt
+// becomes the vsqrt instruction) but is kept for completeness.
 // ----------------------------------------------------------------
 
-uint32_t odin_sqrtf(uint32_t x) { return f2u(sqrtf(u2f(x))); }
+uint32_t odin_sqrtf(uint32_t x)              { return f2u(sqrtf(u2f(x))); }
+uint32_t odin_sinf(uint32_t x)               { return f2u(sinf(u2f(x))); }
+uint32_t odin_cosf(uint32_t x)               { return f2u(cosf(u2f(x))); }
+uint32_t odin_tanf(uint32_t x)               { return f2u(tanf(u2f(x))); }
+uint32_t odin_asinf(uint32_t x)              { return f2u(asinf(u2f(x))); }
+uint32_t odin_acosf(uint32_t x)              { return f2u(acosf(u2f(x))); }
+uint32_t odin_atanf(uint32_t x)              { return f2u(atanf(u2f(x))); }
+uint32_t odin_atan2f(uint32_t y, uint32_t x) { return f2u(atan2f(u2f(y), u2f(x))); }
+uint32_t odin_powf(uint32_t x, uint32_t y)   { return f2u(powf(u2f(x), u2f(y))); }
+uint32_t odin_fmodf(uint32_t x, uint32_t y)  { return f2u(fmodf(u2f(x), u2f(y))); }
+
+// sin and cos of the same angle in one call (rotation matrices,
+// quaternions). Results go through pointers, so no float crosses
+// in a register.
+void odin_sincosf(uint32_t x, float* s, float* c) {
+    float a = u2f(x);
+    *s = sinf(a);
+    *c = cosf(a);
+}
 
 // ----------------------------------------------------------------
 // Projection matrices (all take float params)
