@@ -182,14 +182,18 @@ Mtx_Add :: proc "contextless" (out, lhs, rhs: ^C3D_Mtx) {
     lo := transmute(^[16]f32)(lhs)
     ro := transmute(^[16]f32)(rhs)
     oo := transmute(^[16]f32)(out)
-    for i in 0..<16 { oo[i] = lo[i] + ro[i] }
+    for i in 0..<16 {
+        oo[i] = lo[i] + ro[i]
+    }
 }
 
 Mtx_Subtract :: proc "contextless" (out, lhs, rhs: ^C3D_Mtx) {
     lo := transmute(^[16]f32)(lhs)
     ro := transmute(^[16]f32)(rhs)
     oo := transmute(^[16]f32)(out)
-    for i in 0..<16 { oo[i] = lo[i] - ro[i] }
+    for i in 0..<16 {
+        oo[i] = lo[i] - ro[i]
+    }
 }
 
 // ============================================================
@@ -209,14 +213,16 @@ Mtx_MultiplyFVec4 :: proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec
 
 // Mtx_MultiplyFVec3 — multiply 3×3 submatrix by a FVec3 (v.x / logical W = 0).
 Mtx_MultiplyFVec3 :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
-    v4 := v; v4.x = 0  // zero logical W
+    v4 := v
+    v4.x = 0  // zero logical W
     return Mtx_MultiplyFVec4(mtx, v4)
 }
 
 // Mtx_MultiplyFVecH — multiply 4×3 matrix by FVec3 (sets logical W = 1 first).
 // C sets v.w = 1.0f; C's .w = Odin's .x.
 Mtx_MultiplyFVecH :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
-    v4 := v; v4.x = 1.0  // logical W = 1
+    v4 := v
+    v4.x = 1.0  // logical W = 1
     return Mtx_MultiplyFVec4(mtx, v4)
 }
 
@@ -596,69 +602,154 @@ Mtx_Inverse :: #force_inline proc(out: ^C3D_Mtx) -> f32 {
 }
 
 Mtx_FromQuat :: #force_inline proc(m: ^C3D_Mtx, q: C3D_FQuat) {
-    q_ := q; _Mtx_FromQuat_bridge(m, &q_)
+    q_ := q
+    _Mtx_FromQuat_bridge(m, &q_)
 }
 
 Mtx_LookAt :: #force_inline proc(out: ^C3D_Mtx,
                                   pos, target, up: C3D_FVec,
                                   isLeftHanded: bool) {
-    p_ := pos; t_ := target; u_ := up
+    p_ := pos
+    t_ := target
+    u_ := up
     _Mtx_LookAt_bridge(out, &p_, &t_, &u_, isLeftHanded)
 }
 
 Mtx_Rotate :: #force_inline proc(mtx: ^C3D_Mtx,
                                   axis: C3D_FVec, angle: f32, bRightSide: bool) {
-    a_ := axis; _Mtx_Rotate_bridge(mtx, &a_, angle, bRightSide)
+    a_ := axis
+    _Mtx_Rotate_bridge(mtx, &a_, angle, bRightSide)
 }
 
 Quat_Multiply :: #force_inline proc(lhs, rhs: C3D_FQuat) -> C3D_FQuat {
-    l_ := lhs; r_ := rhs; out: C3D_FQuat
-    _Quat_Multiply_bridge(&l_, &r_, &out); return out
+    l_ := lhs
+    r_ := rhs
+    out: C3D_FQuat
+    _Quat_Multiply_bridge(&l_, &r_, &out)
+    return out
 }
 
 Quat_Pow :: #force_inline proc(q: C3D_FQuat, p: f32) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_Pow_bridge(&q_, p, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_Pow_bridge(&q_, p, &out)
+    return out
 }
 
 Quat_CrossFVec3 :: #force_inline proc(q: C3D_FQuat, v: C3D_FVec) -> C3D_FVec {
-    q_ := q; v_ := v; out: C3D_FVec
-    _Quat_CrossFVec3_bridge(&q_, &v_, &out); return out
+    q_ := q
+    v_ := v
+    out: C3D_FVec
+    _Quat_CrossFVec3_bridge(&q_, &v_, &out)
+    return out
 }
 
 Quat_Rotate :: #force_inline proc(q: C3D_FQuat, axis: C3D_FVec,
                                    r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; a_ := axis; out: C3D_FQuat
-    _Quat_Rotate_bridge(&q_, &a_, r, bRightSide, &out); return out
+    q_ := q
+    a_ := axis
+    out: C3D_FQuat
+    _Quat_Rotate_bridge(&q_, &a_, r, bRightSide, &out)
+    return out
 }
 
 Quat_RotateX :: #force_inline proc(q: C3D_FQuat, r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_RotateX_bridge(&q_, r, bRightSide, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_RotateX_bridge(&q_, r, bRightSide, &out)
+    return out
 }
 
 Quat_RotateY :: #force_inline proc(q: C3D_FQuat, r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_RotateY_bridge(&q_, r, bRightSide, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_RotateY_bridge(&q_, r, bRightSide, &out)
+    return out
 }
 
 Quat_RotateZ :: #force_inline proc(q: C3D_FQuat, r: f32, bRightSide: bool) -> C3D_FQuat {
-    q_ := q; out: C3D_FQuat; _Quat_RotateZ_bridge(&q_, r, bRightSide, &out); return out
+    q_ := q
+    out: C3D_FQuat
+    _Quat_RotateZ_bridge(&q_, r, bRightSide, &out)
+    return out
 }
 
 Quat_FromMtx :: #force_inline proc(m: ^C3D_Mtx) -> C3D_FQuat {
-    out: C3D_FQuat; _Quat_FromMtx_bridge(m, &out); return out
+    out: C3D_FQuat
+    _Quat_FromMtx_bridge(m, &out)
+    return out
 }
 
 Quat_FromPitchYawRoll :: #force_inline proc(pitch, yaw, roll: f32,
                                              bRightSide: bool) -> C3D_FQuat {
     out: C3D_FQuat
-    _Quat_FromPitchYawRoll_bridge(pitch, yaw, roll, bRightSide, &out); return out
+    _Quat_FromPitchYawRoll_bridge(pitch, yaw, roll, bRightSide, &out)
+    return out
 }
 
 Quat_LookAt :: #force_inline proc(source, target, forwardVector, upVector: C3D_FVec) -> C3D_FQuat {
-    s_ := source; t_ := target; f_ := forwardVector; u_ := upVector; out: C3D_FQuat
-    _Quat_LookAt_bridge(&s_, &t_, &f_, &u_, &out); return out
+    s_ := source
+    t_ := target
+    f_ := forwardVector
+    u_ := upVector
+    out: C3D_FQuat
+    _Quat_LookAt_bridge(&s_, &t_, &f_, &u_, &out)
+    return out
 }
 
 Quat_FromAxisAngle :: #force_inline proc(axis: C3D_FVec, angle: f32) -> C3D_FQuat {
-    a_ := axis; out: C3D_FQuat
-    _Quat_FromAxisAngle_bridge(&a_, angle, &out); return out
+    a_ := axis
+    out: C3D_FQuat
+    _Quat_FromAxisAngle_bridge(&a_, angle, &out)
+    return out
+}
+
+// ============================================================
+// libm bridge — sin, cos, tan, ... for code running on the 3DS.
+//
+// Don't call core:math sin/cos/tan/atan2/pow on the 3DS: they lower
+// to libm calls (sinf, cosf, ...) that read the argument from s0
+// (hard-float) while Odin passes it in r0 (soft-float). The call
+// links and returns garbage. Use these instead.
+//
+// The C side (odin_* in c3d/bridge.c) takes and returns floats as
+// uint32_t bit patterns, so they are declared here as u32 and
+// transmuted. Keep it that way: an f32 declaration only matches the
+// u32 C side by accident of the soft-float ABI, and breaks once
+// Odin emits hard-float.
+//
+// math.sqrt is fine with -microarch:mpcore (it becomes vsqrt);
+// sqrtf is here only for completeness.
+// ============================================================
+
+@(default_calling_convention = "c")
+foreign c3d_bridge {
+    @(link_name = "odin_sqrtf")   _odin_sqrtf   :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_sinf")    _odin_sinf    :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_cosf")    _odin_cosf    :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_tanf")    _odin_tanf    :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_asinf")   _odin_asinf   :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_acosf")   _odin_acosf   :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_atanf")   _odin_atanf   :: proc(x: u32) -> u32 ---
+    @(link_name = "odin_atan2f")  _odin_atan2f  :: proc(y, x: u32) -> u32 ---
+    @(link_name = "odin_powf")    _odin_powf    :: proc(x, y: u32) -> u32 ---
+    @(link_name = "odin_fmodf")   _odin_fmodf   :: proc(x, y: u32) -> u32 ---
+    @(link_name = "odin_sincosf") _odin_sincosf :: proc(x: u32, s, c: ^f32) ---
+}
+
+sqrtf  :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_sqrtf(transmute(u32)x) }
+sinf   :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_sinf(transmute(u32)x) }
+cosf   :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_cosf(transmute(u32)x) }
+tanf   :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_tanf(transmute(u32)x) }
+asinf  :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_asinf(transmute(u32)x) }
+acosf  :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_acosf(transmute(u32)x) }
+atanf  :: #force_inline proc "contextless" (x: f32) -> f32 { return transmute(f32)_odin_atanf(transmute(u32)x) }
+atan2f :: #force_inline proc "contextless" (y, x: f32) -> f32 { return transmute(f32)_odin_atan2f(transmute(u32)y, transmute(u32)x) }
+powf   :: #force_inline proc "contextless" (x, y: f32) -> f32 { return transmute(f32)_odin_powf(transmute(u32)x, transmute(u32)y) }
+fmodf  :: #force_inline proc "contextless" (x, y: f32) -> f32 { return transmute(f32)_odin_fmodf(transmute(u32)x, transmute(u32)y) }
+
+// sin and cos of one angle in a single bridge call.
+sincosf :: #force_inline proc "contextless" (x: f32) -> (s, c: f32) {
+    _odin_sincosf(transmute(u32)x, &s, &c)
+    return
 }

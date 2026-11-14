@@ -4,16 +4,6 @@ import ctru "../../lib/ctru"
 import c2d  "../../lib/c2d"
 import c3d  "../../lib/c3d"
 
-// ---------------------------------------------------------------
-// C functions defined in this example's main.c
-// ---------------------------------------------------------------
-foreign import example_c "system:example_c"
-
-@(default_calling_convention = "c")
-foreign example_c {
-    load_t3x_image :: proc(path: cstring, tex: ^c3d.C3D_Tex, subtex: ^c2d.Tex3DS_SubTexture) -> bool ---
-}
-
 @(export, link_name = "odin_main")
 images_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 	ctru.romfsInit()
@@ -31,42 +21,42 @@ images_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 	// Load one texture per valid 3DS power-of-two size
 	tex_8x8:      c3d.C3D_Tex
 	subtex_8x8:   c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_8x8.t3x", &tex_8x8, &subtex_8x8)
+	c2d.load_t3x_image("romfs:/image_8x8.t3x", &tex_8x8, &subtex_8x8)
 	img_8x8 := c2d.C2D_Image{tex = &tex_8x8, subtex = &subtex_8x8}
 
 	tex_16x16:    c3d.C3D_Tex
 	subtex_16x16: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_16x16.t3x", &tex_16x16, &subtex_16x16)
+	c2d.load_t3x_image("romfs:/image_16x16.t3x", &tex_16x16, &subtex_16x16)
 	img_16x16 := c2d.C2D_Image{tex = &tex_16x16, subtex = &subtex_16x16}
 
 	tex_32x32:    c3d.C3D_Tex
 	subtex_32x32: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_32x32.t3x", &tex_32x32, &subtex_32x32)
+	c2d.load_t3x_image("romfs:/image_32x32.t3x", &tex_32x32, &subtex_32x32)
 	img_32x32 := c2d.C2D_Image{tex = &tex_32x32, subtex = &subtex_32x32}
 
 	tex_64x64:    c3d.C3D_Tex
 	subtex_64x64: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_64x64.t3x", &tex_64x64, &subtex_64x64)
+	c2d.load_t3x_image("romfs:/image_64x64.t3x", &tex_64x64, &subtex_64x64)
 	img_64x64 := c2d.C2D_Image{tex = &tex_64x64, subtex = &subtex_64x64}
 
 	tex_128x128:    c3d.C3D_Tex
 	subtex_128x128: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_128x128.t3x", &tex_128x128, &subtex_128x128)
+	c2d.load_t3x_image("romfs:/image_128x128.t3x", &tex_128x128, &subtex_128x128)
 	img_128x128 := c2d.C2D_Image{tex = &tex_128x128, subtex = &subtex_128x128}
 
 	tex_256x256:    c3d.C3D_Tex
 	subtex_256x256: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_256x256.t3x", &tex_256x256, &subtex_256x256)
+	c2d.load_t3x_image("romfs:/image_256x256.t3x", &tex_256x256, &subtex_256x256)
 	img_256x256 := c2d.C2D_Image{tex = &tex_256x256, subtex = &subtex_256x256}
 
 	tex_512x512:    c3d.C3D_Tex
 	subtex_512x512: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_512x512.t3x", &tex_512x512, &subtex_512x512)
+	c2d.load_t3x_image("romfs:/image_512x512.t3x", &tex_512x512, &subtex_512x512)
 	img_512x512 := c2d.C2D_Image{tex = &tex_512x512, subtex = &subtex_512x512}
 
 	tex_1024x1024:    c3d.C3D_Tex
 	subtex_1024x1024: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/image_1024x1024.t3x", &tex_1024x1024, &subtex_1024x1024)
+	c2d.load_t3x_image("romfs:/image_1024x1024.t3x", &tex_1024x1024, &subtex_1024x1024)
 	img_1024x1024 := c2d.C2D_Image{tex = &tex_1024x1024, subtex = &subtex_1024x1024}
 
 	clrClear := c2d.C2D_Color32(0x00, 0x00, 0x00, 0xFF)

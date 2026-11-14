@@ -113,11 +113,14 @@ if "%AUDIO_FOUND%"=="1" (
 :: ---------------------------------------------------------------
 echo.
 echo Building Odin assembly...
-odin build . -target:freestanding_arm32 -o:speed -build-mode:asm -no-entry-point -min-link-libs -no-thread-local
+odin build . -target:freestanding_arm32 -o:speed -build-mode:asm -no-entry-point -min-link-libs -no-thread-local -microarch:mpcore
 if errorlevel 1 goto :fail
 echo Moving Odin assembly files...
 for %%f in (*.S) do (
     ren "%%f" "%%~nf.odin.s"
+    REM Mark the object as hard-float so ld accepts it next to devkitARM's
+    REM objects. Every float that crosses into C still goes through a bridge.c.
+    echo .eabi_attribute 28, 1 >> "%%~nf.odin.s"
     move "%%~nf.odin.s" "%ODINASM%\"
 )
 echo Compiling Odin assembly...
@@ -125,6 +128,10 @@ for %%f in (%ODINASM%\*.odin.s) do (
     echo  - %%f
     arm-none-eabi-gcc -c "%%f" -o "%BUILD%\%%~nf.o" ^
         -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
+    if errorlevel 1 goto :fail
+    REM Odin calls libm/libgcc float helpers soft-float style; devkitARM's are
+    REM hard-float. Rename them to the o3dx_* wrappers in lib\libm\bridge.c.
+    arm-none-eabi-objcopy --redefine-syms="%LIB%\libm\redefine.syms" "%BUILD%\%%~nf.o"
     if errorlevel 1 goto :fail
 )
 :: ---------------------------------------------------------------
@@ -152,6 +159,9 @@ if errorlevel 1 goto :fail
 arm-none-eabi-gcc -c "%LIB%\c3d\bridge.c" -o "%BUILD%\c3d_bridge.o" ^
     -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft ^
     -I"%DEVKITPRO%\libctru\include" -D__3DS__
+if errorlevel 1 goto :fail
+arm-none-eabi-gcc -c "%LIB%\libm\bridge.c" -o "%BUILD%\libm_bridge.o" ^
+    -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft -O2
 if errorlevel 1 goto :fail
 :: ---------------------------------------------------------------
 :: Collect all object files and link ELF

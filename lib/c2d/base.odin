@@ -170,6 +170,8 @@ foreign c2d_bridge {
 
     @(link_name = "c2d_right_image_tint")
     C2D_RightImageTint :: proc(tint: ^C2D_ImageTint, color: u32, blend: f32) ---
+
+    LoadT3xImage :: proc(path: cstring, tex: ^C3D_Tex, subtex: ^Tex3DS_SubTexture) -> bool ---
 }
 
 // ============================================================
@@ -223,3 +225,5 @@ BottomImageTint    :: C2D_BottomImageTint
 LeftImageTint      :: C2D_LeftImageTint
 RightImageTint     :: C2D_RightImageTint
 Color32            :: C2D_Color32
+
+load_t3x_image     :: LoadT3xImage 

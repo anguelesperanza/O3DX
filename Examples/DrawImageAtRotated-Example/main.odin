@@ -4,16 +4,6 @@ import ctru "../../lib/ctru"
 import c2d  "../../lib/c2d"
 import c3d  "../../lib/c3d"
 
-// ---------------------------------------------------------------
-// C functions defined in this example's main.c
-// ---------------------------------------------------------------
-foreign import example_c "system:example_c"
-
-@(default_calling_convention = "c")
-foreign example_c {
-    load_t3x_image :: proc(path: cstring, tex: ^c3d.C3D_Tex, subtex: ^c2d.Tex3DS_SubTexture) -> bool ---
-}
-
 MATH_PI :: f32(3.14159265358979)
 
 @(export, link_name = "odin_main")
@@ -33,7 +23,7 @@ draw_image_rotated_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 	// Load sprite (64x64)
 	tex:    c3d.C3D_Tex
 	subtex: c2d.Tex3DS_SubTexture
-	load_t3x_image("romfs:/sprite.t3x", &tex, &subtex)
+	c2d.load_t3x_image("romfs:/gfx/sprite.t3x", &tex, &subtex)
 	img := c2d.C2D_Image{tex = &tex, subtex = &subtex}
 
 	clrBg := c2d.C2D_Color32(0x1A, 0x1A, 0x2E, 0xFF)

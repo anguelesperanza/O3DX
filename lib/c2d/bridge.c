@@ -12,8 +12,9 @@
 // Functions that return float wrap the result with f2u() so the bits
 // land in r0 where soft-float Odin expects them.
 
-#include <citro2d.h>
+#include <stdio.h>
 #include <string.h>
+#include <citro2d.h>
 #include "../bridge_utils.h"
 
 // ----------------------------------------------------------------
@@ -298,6 +299,20 @@ void c2d_font_calc_glyph_pos(
 // pointer to avoid any struct-return ABI ambiguity across toolchains.
 // ----------------------------------------------------------------
 
+bool LoadT3xImage(const char* path, C3D_Tex* tex, Tex3DS_SubTexture* subtex) {
+    FILE* f = fopen(path, "rb");
+    if (!f) return false;
+    Tex3DS_Texture t3x = Tex3DS_TextureImportStdio(f, tex, NULL, false);
+    fclose(f);
+    if (!t3x) return false;
+    if (Tex3DS_GetNumSubTextures(t3x) == 0) {
+        Tex3DS_TextureFree(t3x);
+        return false;
+    }
+    *subtex = *Tex3DS_GetSubTexture(t3x, 0);
+    Tex3DS_TextureFree(t3x);
+    return true;
+}
 size_t c2d_sprite_sheet_count(C2D_SpriteSheet sheet) {
     return C2D_SpriteSheetCount(sheet);
 }
