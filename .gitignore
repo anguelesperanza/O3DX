@@ -17,3 +17,6 @@ romfs/audio/
 
 # Private / unreleased games
 Examples/Games/ZombieHord/
+
+# Built .3dsx files collected for copying to the 3DS
+rom-exports/

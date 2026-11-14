@@ -21,7 +21,7 @@ input_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
 	tex_64x64:    c3d.C3D_Tex
 	subtex_64x64: c2d.Tex3DS_SubTexture
-	c2d.load_t3x_image("romfs:/player.t3x", &tex_64x64, &subtex_64x64)
+	c2d.load_t3x_image("romfs:/gfx/player.t3x", &tex_64x64, &subtex_64x64)
 	img_64x64 := c2d.C2D_Image{tex = &tex_64x64, subtex = &subtex_64x64}
 
 	clrClear := c2d.C2D_Color32(0x00, 0x00, 0x00, 0xFF)
