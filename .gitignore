@@ -20,3 +20,6 @@ Examples/Games/ZombieHord/
 
 # Built .3dsx files collected for copying to the 3DS
 rom-exports/
+
+
+*.exe

@@ -102,7 +102,7 @@ load_image :: proc(path: string) -> ^image.Image {
 // so the byte order in memory is: A, B, G, R (offset 0..3 per pixel).
 to_abgr8 :: proc(img: ^image.Image) -> []u8 {
     w, h := img.width, img.height
-    src  := img.pixels.buf[:]
+    src  := img.pixels
     bpp  := len(src) / (w * h)
     dst  := make([]u8, w * h * 4)
     for i in 0 ..< w * h {
