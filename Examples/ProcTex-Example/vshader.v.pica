@@ -26,8 +26,8 @@
     dp4 outpos.z, mvp[2], r0
     dp4 outpos.w, mvp[3], r0
 
-    ; Pass UV through
-    mov outtc0.xy, inuv.xy
+    ; Pass the UV through, writing the whole register (zw from the loader).
+    mov outtc0, inuv
 
     end
 .end

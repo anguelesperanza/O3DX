@@ -26,6 +26,10 @@ void c2d_scene_begin(C3D_RenderTarget* target) {
     C2D_SceneBegin(target);
 }
 
+void c2d_scene_target(C3D_RenderTarget* target) {
+    C2D_SceneTarget(target);
+}
+
 // ----------------------------------------------------------------
 // Shape drawing
 // ----------------------------------------------------------------

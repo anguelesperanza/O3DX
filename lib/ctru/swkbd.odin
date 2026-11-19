@@ -20,7 +20,7 @@ package ctru
 // ── Enums ─────────────────────────────────────────────────────
 
 /// Keyboard layout style.
-SwkbdType :: enum i32 {
+SwkbdType :: enum u8 {
     NORMAL  = 0, // QWERTY + accents + symbols + mobile pages
     QWERTY  = 1, // QWERTY only
     NUMPAD  = 2, // Number pad
@@ -28,7 +28,7 @@ SwkbdType :: enum i32 {
 }
 
 /// Which inputs the keyboard will accept.
-SwkbdValidInput :: enum i32 {
+SwkbdValidInput :: enum u8 {
     ANYTHING           = 0, // All inputs accepted
     NOTEMPTY           = 1, // Empty strings rejected
     NOTEMPTY_NOTBLANK  = 2, // Empty or whitespace-only strings rejected
@@ -37,7 +37,7 @@ SwkbdValidInput :: enum i32 {
 }
 
 /// Which dialog button was pressed.
-SwkbdButton :: enum i32 {
+SwkbdButton :: enum u8 {
     LEFT    = 0, // Left button (usually Cancel)
     MIDDLE  = 1, // Middle button (usually I Forgot)
     RIGHT   = 2, // Right button (usually OK / Confirm)
@@ -46,21 +46,21 @@ SwkbdButton :: enum i32 {
 }
 
 /// Password concealment mode.
-SwkbdPasswordMode :: enum i32 {
+SwkbdPasswordMode :: enum u8 {
     NONE       = 0, // Characters shown as typed
     HIDE       = 1, // Characters hidden immediately
     HIDE_DELAY = 2, // Characters hidden after a short delay
 }
 
 /// Return value from the filter callback.
-SwkbdCallbackResult :: enum i32 {
+SwkbdCallbackResult :: enum u8 {
     OK       = 0, // Input is valid
     CLOSE    = 1, // Show error message and close keyboard
     CONTINUE = 2, // Show error message and keep keyboard open
 }
 
 /// Detailed result code available after swkbdInputText returns SWKBD_BUTTON_NONE.
-SwkbdResult :: enum i32 {
+SwkbdResult :: enum i8 {
     NONE          = -1, // Unused sentinel
     INVALID_INPUT = -2, // Bad parameters passed to swkbd
     OUTOFMEM      = -3, // Memory allocation failed

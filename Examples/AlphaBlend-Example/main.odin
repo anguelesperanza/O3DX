@@ -13,12 +13,14 @@ import c3d  "../../lib/c3d"
 //   3. Blue   quad       (alpha=0.5) — right half, overlaps red in centre
 //   4. Green  quad       (alpha=0.5) — centre strip, overlaps both
 //
-// Expected visible colours:
-//   Far left   (white + red blend)                  → pink
-//   Far right  (white + blue blend)                 → light blue
-//   Centre left  (white + red + green blend)        → yellow-green tint
-//   Centre right (white + blue + green blend)       → cyan tint
-//   Centre strip where only green overlaps white    → light green
+// Expected colours, left to right (each 50% layer halves what is under it):
+//   x  20-155  red over white                -> pink        (1.00, 0.50, 0.50)
+//   x 155-190  green over pink               -> olive       (0.50, 0.68, 0.25)
+//   x 190-210  green over blue over pink     -> dark teal   (0.25, 0.55, 0.38)
+//   x 210-245  green over light blue         -> sea green   (0.25, 0.68, 0.50)
+//   x 245-380  blue over white               -> light blue  (0.50, 0.50, 1.00)
+// The white never shows on its own: red and blue between them cover it.
+// Outside x 20-380 / y 20-220 is the dark blue clear colour.
 //
 // The vertex alpha value flows through the vertex shader (out1 color.w) and
 // the TexEnv (PRIMARY_COLOR / REPLACE) into the fragment stage, where
@@ -152,7 +154,10 @@ alpha_blend_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
         ctru.printf("\x1b[1;1HAlpha Blend Example")
         ctru.printf("\x1b[2;1HPress START to exit")
-        ctru.printf("\x1b[3;1HWhite bg + red(L) + blue(R) + green(C)")
+        ctru.printf("\x1b[4;1HWhite, then 50%% red, blue, green")
+        ctru.printf("\x1b[6;1HExpect, left to right:")
+        ctru.printf("\x1b[7;1H  pink, olive, dark teal,")
+        ctru.printf("\x1b[8;1H  sea green, light blue")
 
         c3d.C3D_FrameBegin(c3d.C3D_FRAME_SYNCDRAW)
 

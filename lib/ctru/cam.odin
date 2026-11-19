@@ -57,7 +57,7 @@ CAM_SELECT_ALL       :: u32(CAM_SELECT_OUT1 | CAM_SELECT_IN1 | CAM_SELECT_OUT2)
 // ── Enums ─────────────────────────────────────────────────────
 
 /// Camera contexts (can combine with |).
-CAMU_Context :: enum u32 {
+CAMU_Context :: enum u8 {
     NONE    = 0x0,
     A       = 0x1,
     B       = 0x2,
@@ -65,7 +65,7 @@ CAMU_Context :: enum u32 {
 }
 
 /// Image flip modes.
-CAMU_Flip :: enum u32 {
+CAMU_Flip :: enum u8 {
     NONE       = 0x0,
     HORIZONTAL = 0x1,
     VERTICAL   = 0x2,
@@ -73,7 +73,7 @@ CAMU_Flip :: enum u32 {
 }
 
 /// Capture resolutions.
-CAMU_Size :: enum u32 {
+CAMU_Size :: enum u8 {
     VGA         = 0x0, // 640x480
     QVGA        = 0x1, // 320x240
     QQVGA       = 0x2, // 160x120
@@ -86,7 +86,7 @@ CAMU_Size :: enum u32 {
 }
 
 /// Frame rates.
-CAMU_FrameRate :: enum u32 {
+CAMU_FrameRate :: enum u8 {
     RATE_15       = 0x0,
     RATE_15_TO_5  = 0x1,
     RATE_15_TO_2  = 0x2,
@@ -103,7 +103,7 @@ CAMU_FrameRate :: enum u32 {
 }
 
 /// White balance modes.
-CAMU_WhiteBalance :: enum u32 {
+CAMU_WhiteBalance :: enum u8 {
     AUTO  = 0x0, // also NORMAL
     K3200 = 0x1, // also TUNGSTEN
     K4150 = 0x2, // also WHITE_FLUORESCENT_LIGHT
@@ -113,7 +113,7 @@ CAMU_WhiteBalance :: enum u32 {
 }
 
 /// Photo mode presets.
-CAMU_PhotoMode :: enum u32 {
+CAMU_PhotoMode :: enum u8 {
     NORMAL    = 0x0,
     PORTRAIT  = 0x1,
     LANDSCAPE = 0x2,
@@ -122,7 +122,7 @@ CAMU_PhotoMode :: enum u32 {
 }
 
 /// Special image effects.
-CAMU_Effect :: enum u32 {
+CAMU_Effect :: enum u8 {
     NONE     = 0x0,
     MONO     = 0x1,
     SEPIA    = 0x2,
@@ -132,7 +132,7 @@ CAMU_Effect :: enum u32 {
 }
 
 /// Contrast levels (6 = normal).
-CAMU_Contrast :: enum u32 {
+CAMU_Contrast :: enum u8 {
     PATTERN_01 = 0x0,
     PATTERN_02 = 0x1,
     PATTERN_03 = 0x2,
@@ -147,20 +147,20 @@ CAMU_Contrast :: enum u32 {
 }
 
 /// Lens correction modes.
-CAMU_LensCorrection :: enum u32 {
+CAMU_LensCorrection :: enum u8 {
     OFF   = 0x0, // also DARK
     ON_70 = 0x1, // also NORMAL
     ON_90 = 0x2, // also BRIGHT
 }
 
 /// Pixel output formats.
-CAMU_OutputFormat :: enum u32 {
+CAMU_OutputFormat :: enum u8 {
     YUV_422 = 0x0,
     RGB_565 = 0x1,
 }
 
 /// Shutter sound types.
-CAMU_ShutterSoundType :: enum u32 {
+CAMU_ShutterSoundType :: enum u8 {
     NORMAL    = 0x0,
     MOVIE     = 0x1,
     MOVIE_END = 0x2,
@@ -168,7 +168,7 @@ CAMU_ShutterSoundType :: enum u32 {
 
 // ── Y2R coefficient enum (from y2r.h, needed for CAMU_GetSuitableY2rStandardCoefficient)
 // Will move to y2r.odin when that service is bound.
-Y2RU_StandardCoefficient :: enum u32 {
+Y2RU_StandardCoefficient :: enum u8 {
     ITU_R_BT_601         = 0x0,
     ITU_R_BT_709         = 0x1,
     ITU_R_BT_601_SCALING = 0x2,

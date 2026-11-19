@@ -1,0 +1,4 @@
+Alpha Blend Examples: All three show the same thing, no difference, still no white background, still three shades of green in the middle.
+I believe this one never worked properly and it wasn't caught during testing. I will share a picture of this so wait to do any work until the picture comes in.
+
+

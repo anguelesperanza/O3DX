@@ -116,9 +116,11 @@ in_addr :: struct {
 }
 
 /// Generic socket address — cast to sockaddr_in for IPv4.
+// libctru declares sa_data as a flexible array member, so the struct itself
+// is just the family. Use it through pointers (cast from sockaddr_in).
 sockaddr :: struct {
     sa_family: u16,
-    sa_data:   [14]u8,
+    sa_data:   [0]u8,
 }
 
 /// IPv4 socket address.
@@ -130,9 +132,10 @@ sockaddr_in :: struct {
 }
 
 /// Large enough to hold any socket address (IPv4 or IPv6).
-sockaddr_storage :: struct #align(8) {
-    ss_family: u16,
-    _pad:      [126]u8,
+// 28 bytes on the 3DS: big enough for sockaddr_in6, the largest address.
+sockaddr_storage :: struct {
+    ss_family:  u16,
+    ss_padding: [26]u8,
 }
 
 /// Linger option for SO_LINGER.
@@ -148,8 +151,8 @@ addrinfo :: struct {
     ai_socktype:  i32,
     ai_protocol:  i32,
     ai_addrlen:   socklen_t,
-    ai_addr:      ^sockaddr,
     ai_canonname: cstring,
+    ai_addr:      ^sockaddr,
     ai_next:      ^addrinfo,
 }
 
@@ -157,14 +160,14 @@ addrinfo :: struct {
 hostent :: struct {
     h_name:      cstring,   // official hostname
     h_aliases:   ^cstring,  // null-terminated list of aliases
-    h_addrtype:  i32,       // AF_INET
-    h_length:    i32,       // length of each address
+    h_addrtype:  u16,       // AF_INET
+    h_length:    u16,       // length of each address
     h_addr_list: ^^u8,      // null-terminated list of addresses
 }
 
 // ── NetworkOpt values for SOCU_GetNetworkOpt ──────────────────
 
-NetworkOpt :: enum u32 {
+NetworkOpt :: enum u16 {
     MAC_ADDRESS     = 0x1004,
     ARP_TABLE       = 0x3002,
     IP_INFO         = 0x4003,
@@ -336,15 +339,6 @@ foreign ctru {
     // Convert a string error code from getaddrinfo to a message.
     gai_strerror :: proc(errcode: i32) -> cstring ---
 
-    // ── Byte-order conversion ─────────────────────────────────
-
-    // Host-to-network and network-to-host byte order conversions.
-    // Always use these when filling sin_port / sin_addr.
-    htons :: proc(hostshort: u16) -> u16 ---
-    htonl :: proc(hostlong:  u32) -> u32 ---
-    ntohs :: proc(netshort:  u16) -> u16 ---
-    ntohl :: proc(netlong:   u32) -> u32 ---
-
     // ── Address string conversion ─────────────────────────────
 
     // Convert a dotted-decimal string ("1.2.3.4") to a u32 in network byte order.
@@ -356,4 +350,93 @@ foreign ctru {
 
     // Convert dotted-decimal string to in_addr.  Returns 1 on success, 0 on failure.
     inet_aton :: proc(cp: cstring, inp: ^in_addr) -> i32 ---
+}
+
+// ============================================================
+// Remaining socket and resolver calls (arpa/inet.h, netdb.h, sys/socket.h, poll.h, sys/ioctl.h)
+// ============================================================
+
+HOST_NOT_FOUND :: 1
+NO_DATA        :: 2
+NO_ADDRESS     :: 2
+NO_RECOVERY    :: 3
+TRY_AGAIN      :: 4
+AI_NUMERICSERV :: 0x0
+AI_ADDRCONFIG  :: 0x0
+NI_MAXHOST     :: 1025
+NI_MAXSERV     :: 32
+NI_NOFQDN      :: 0x1
+NI_NUMERICHOST :: 0x2
+NI_NAMEREQD    :: 0x4
+NI_NUMERICSERV :: 0x0
+NI_DGRAM       :: 0x0
+EAI_MEMORY     :: -304
+
+PF_UNSPEC    :: 0
+PF_INET      :: 2
+PF_INET6     :: 23
+MSG_MORE     :: 0x0
+MSG_NOSIGNAL :: 0x0
+
+sa_family_t :: u16
+
+POLLIN   :: 0x1
+POLLPRI  :: 0x2
+POLLHUP  :: 0x4
+POLLERR  :: 0x8
+POLLOUT  :: 0x10
+POLLNVAL :: 0x20
+
+nfds_t :: u32
+
+pollfd :: struct {
+    fd:      i32,
+    events:  i32,
+    revents: i32,
+}
+
+FIONBIO :: 1
+
+@(default_calling_convention = "c")
+foreign ctru {
+    inet_ntop :: proc(af: i32, src: rawptr, dst: [^]u8, size: socklen_t) -> cstring ---
+
+    inet_pton :: proc(af: i32, src: cstring, dst: rawptr) -> i32 ---
+
+    gethostbyaddr :: proc(addr: rawptr, len: socklen_t, type_: i32) -> ^hostent ---
+
+    herror :: proc(s: cstring) ---
+
+    hstrerror :: proc(err: i32) -> cstring ---
+
+    getnameinfo :: proc(sa: ^sockaddr, salen: socklen_t, host: [^]u8, hostlen: socklen_t, serv: [^]u8, servlen: socklen_t, flags: i32) -> i32 ---
+
+    sockatmark :: proc(sockfd: i32) -> i32 ---
+
+    poll :: proc(fds: ^pollfd, nfsd: nfds_t, timeout: i32) -> i32 ---
+
+    ioctl :: proc(fd: i32, request: i32, #c_vararg args: ..any) -> i32 ---
+}
+
+// ── Byte-order conversion ─────────────────────────────────────
+
+// Host-to-network and network-to-host byte order. The 3DS is little-endian
+// and the network big-endian, so each is a byte swap. Always use these when
+// filling sin_port / sin_addr. (static inline in arpa/inet.h, so there is no
+// symbol to link against; they were declared as foreign procedures before
+// and failed to link when called.)
+htons :: proc "contextless" (hostshort: u16) -> u16 {
+    return hostshort << 8 | hostshort >> 8
+}
+
+htonl :: proc "contextless" (hostlong: u32) -> u32 {
+    return hostlong << 24 | (hostlong & 0xFF00) << 8 | (hostlong >> 8) & 0xFF00 | hostlong >> 24
+}
+
+ntohs :: proc "contextless" (netshort: u16) -> u16 {
+    return htons(netshort)
+}
+
+ntohl :: proc "contextless" (netlong: u32) -> u32 {
+    return htonl(netlong)
 }

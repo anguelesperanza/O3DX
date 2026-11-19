@@ -57,14 +57,14 @@ NFC_AMIIBO_FLAG_APPDATA_SETUP :: u8(1 << 5)
 // ── Enums ─────────────────────────────────────────────────────
 
 /// Operation type passed to nfcInit.
-NFC_OpType :: enum u32 {
+NFC_OpType :: enum u8 {
     TYPE1  = 1, // Unknown
     NFC_TAG = 2, // Default — use for amiibo
     RAW_NFC = 3, // Raw NFC tag commands (>=10.0.0-X only)
 }
 
 /// Current NFC tag state returned by nfcGetTagState.
-NFC_TagState :: enum u32 {
+NFC_TagState :: enum u8 {
     UNINITIALIZED  = 0, // nfcInit() not called yet
     SCANNING_STOPPED = 1, // nfcInit() succeeded; not scanning
     SCANNING        = 2, // nfcStartScanning() succeeded

@@ -7,7 +7,10 @@ package runtime_example
 //
 // Each test prints PASS or FAIL on the top screen; the bottom screen is the
 // console, where o3dx.printf and core:log write.
-//   Y      fail an assertion on purpose (exception screen + sdmc:/o3dx_panic.log)
+//   Y      fail an assertion on purpose: the message goes to the console and
+//          sdmc:/o3dx_panic.log, then the app exits to the Homebrew Launcher
+//          (panic_action = .EXIT; the library default, .TRAP, shows Luma3DS's
+//          exception screen instead)
 //   START  exit
 //
 // Ported from vito's Examples/Runtime-Example (PS Vita).
@@ -206,6 +209,7 @@ run_tests :: proc() {
 @(export, link_name = "odin_main")
 game_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     context = o3dx.init()
+    o3dx.panic_action = .EXIT
 
     ctru.gfxInitDefault()
     c3d.C3D_Init(c3d.C3D_DEFAULT_CMDBUF_SIZE)

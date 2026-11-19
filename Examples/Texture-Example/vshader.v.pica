@@ -38,8 +38,10 @@
     ; Constant white vertex color (TexEnv ignores it in this example).
     mov out1, ones
 
-    ; Pass UV coordinates through unchanged (zw remain 0.0).
-    mov out2.xy, vtxuv.xy
+    ; Pass the UV through. Write the whole register: the loader fills zw
+    ; with (0, 1), and leaving output components unwritten is one suspect
+    ; for the hang on real hardware.
+    mov out2, vtxuv
 
     end
 .end

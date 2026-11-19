@@ -64,7 +64,7 @@ UDS_SENDFLAG_Broadcast :: u8(1 << 1) // force broadcast even without broadcast N
 // ── Enums ─────────────────────────────────────────────────────
 
 /// Connection type for udsConnectNetwork.
-udsConnectionType :: enum u32 {
+udsConnectionType :: enum u8 {
     CLIENT    = 0x1,
     SPECTATOR = 0x2,
 }

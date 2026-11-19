@@ -13,26 +13,27 @@ package ctru
 // ── Enum types ───────────────────────────────────────────────
 
 /// Sound output mode.
-ndspOutputMode :: enum u32 {
+ndspOutputMode :: enum u8 {
     MONO     = 0,
     STEREO   = 1,
     SURROUND = 2,
 }
 
 /// Waveform clipping mode.
-ndspClippingMode :: enum u32 {
+ndspClippingMode :: enum u8 {
     NORMAL = 0,
     SOFT   = 1,
 }
 
 /// Surround speaker position.
-ndspSpeakerPos :: enum u32 {
+ndspSpeakerPos :: enum u8 {
     SQUARE = 0,
     WIDE   = 1,
+    NUM    = 2, // number of positions
 }
 
 /// Channel interpolation type.
-ndspInterpType :: enum u32 {
+ndspInterpType :: enum u8 {
     POLYPHASE = 0,
     LINEAR    = 1,
     NONE      = 2,
@@ -133,7 +134,6 @@ foreign ctru {
     ndspAuxSetEnable      :: proc(id: i32, enable: bool) ---
     ndspAuxIsEnabled      :: proc(id: i32) -> bool ---
     ndspAuxSetFrontBypass :: proc(id: i32, bypass: bool) ---
-    ndspAuxGetFrontBypass :: proc(id: i32) -> bool ---
     ndspAuxSetCallback    :: proc(id: i32, callback: ndspAuxCallback, data: rawptr) ---
 
     // ── Channel — basic ops ───────────────────────────────────

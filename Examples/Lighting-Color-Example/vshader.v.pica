@@ -1,4 +1,4 @@
-; vshader.v.pica — Phase 9 hardware lighting.
+; vshader.v.pica — hardware lighting (the same shader as Spotlight-Example).
 ;
 ; Uniforms:
 ;   mvp[4]       c0-c3  — combined projection*model  (clip-space position)
@@ -13,12 +13,9 @@
 ;   outnq   — normalquat            (lighting unit reads this)
 ;   outview — view-space position   (lighting unit uses for attenuation/specular)
 ;
-; Key insight: a single dp4 group writing to a temp register leaves the result in
-; reversed C3D_FVec component order.  Two chained dp4 groups therefore give wrong
-; clip-w and invisible geometry.  The fix is one dp4 group per destination:
-;   - mvp dp4 group  → directly to outpos   (no intermediate temp)
-;   - modelView dp4 group → temp r2 (normal in reversed format) → normalquat math
-;   - modelView dp4 group → temp r5 (position in reversed format) → swizzle to outview
+; The view-space normal and position are read in their natural component
+; order (x, y, z, w). An earlier version read them reversed to make up for
+; a bug in the Odin Mtx_Multiply, which is now fixed.
 
 .fvec mvp[4], modelView[4]
 
@@ -50,21 +47,18 @@
     dp4 outpos.z, mvp[2], r0
     dp4 outpos.w, mvp[3], r0
 
-    ; ── view-space normal via modelView ────────────────────────────────────
-    ; After dp4: r2 in reversed C3D_FVec format
-    ;   r2.x = 0  (w_vs of direction = 0)
-    ;   r2.y = nz_vs
-    ;   r2.z = ny_vs
-    ;   r2.w = nx_vs
+    ; ── view-space normal via modelView: r2 = (nx, ny, nz, 0) ──────────────
+    ; dp4 into a temporary gives the components in their natural order, the
+    ; same as dp4 straight into outpos.
     dp4 r2.x, modelView[0], r1
     dp4 r2.y, modelView[1], r1
     dp4 r2.z, modelView[2], r1
     dp4 r2.w, modelView[3], r1
 
     ; ── normalquat from view-space normal ─────────────────────────────────
-    ; c = sqrt((1 + nz) / 2),  nz = r2.y
+    ; c = sqrt((1 + nz) / 2)
     ; Note: constants must be src1 (never src2) on PICA200.
-    add r3.x, ones, r2.y       ; r3.x = 1 + nz
+    add r3.x, ones, r2.z       ; r3.x = 1 + nz
     mul r3.x, half, r3.x       ; r3.x = (1 + nz) / 2
     max r3.x, eps,  r3.x       ; clamp away from zero
     rsq r4.x, r3.x             ; r4.x = 1/c
@@ -72,20 +66,19 @@
     mul r3.x, half, r4.x       ; r3.x = 1/(2c)
 
     ; outnq = (nx/(2c), ny/(2c), c, 0)
-    mul outnq.x, r2.w, r3.x   ; nx/(2c)
-    mul outnq.y, r2.z, r3.x   ; ny/(2c)
+    mul outnq.x, r2.x, r3.x   ; nx/(2c)
+    mul outnq.y, r2.y, r3.x   ; ny/(2c)
     mov outnq.z, r4.y         ; c
     mov outnq.w, zeros        ; 0
 
-    ; ── view-space position for the lighting unit ─────────────────────────
-    ; modelView * r0 → r5 in reversed format: (w=1, z_vs, y_vs, x_vs)
+    ; ── view vector for the lighting unit ─────────────────────────────────
+    ; r5 = view-space position (x, y, z, 1). The lighting unit wants the
+    ; vector from the surface to the eye, which is the negated position.
     dp4 r5.x, modelView[0], r0
     dp4 r5.y, modelView[1], r0
     dp4 r5.z, modelView[2], r0
     dp4 r5.w, modelView[3], r0
-
-    ; Swizzle to natural (x_vs, y_vs, z_vs, w_vs=1)
-    mov outview, r5.wzyx
+    mov outview, -r5
 
     end
 .end

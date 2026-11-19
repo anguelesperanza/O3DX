@@ -197,202 +197,85 @@ Mtx_Subtract :: proc "contextless" (out, lhs, rhs: ^C3D_Mtx) {
 }
 
 // ============================================================
-// Matrix × vector  (native, no bridge needed)
+// Matrix × vector, matrix × matrix, transpose — citro3d's own code
+//
+// These used to be written in Odin over the raw [4][4]f32 memory. That
+// memory holds each row as (w, z, y, x), so a loop over it in index order
+// pairs the wrong elements: Mtx_Multiply(a, identity) came back with every
+// row reversed, and Mtx_Translate (which multiplies) and Mtx_Transpose were
+// wrong with it. Calling the C functions keeps the layout citro3d's
+// problem. Mtx_Multiply and Mtx_Transpose take only pointers, so they are
+// called directly; the vector products return a C3D_FVec by value and go
+// through bridge.c.
 // ============================================================
+
+foreign import citro3d_math "system:citro3d"
+
+@(default_calling_convention = "c")
+foreign citro3d_math {
+    // out = a * b. out may be the same matrix as a or b.
+    Mtx_Multiply :: proc(out, a, b: ^C3D_Mtx) ---
+
+    // Transposes the matrix in place.
+    Mtx_Transpose :: proc(out: ^C3D_Mtx) ---
+}
 
 // Mtx_MultiplyFVec4 — M * v, full 4×4 transform.
-// Each output component = dot(row_i, v) using Odin field indices.
 Mtx_MultiplyFVec4 :: proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
-    return C3D_FVec{
-        x = mtx.r[0].x*v.x + mtx.r[0].y*v.y + mtx.r[0].z*v.z + mtx.r[0].w*v.w,
-        y = mtx.r[1].x*v.x + mtx.r[1].y*v.y + mtx.r[1].z*v.z + mtx.r[1].w*v.w,
-        z = mtx.r[2].x*v.x + mtx.r[2].y*v.y + mtx.r[2].z*v.z + mtx.r[2].w*v.w,
-        w = mtx.r[3].x*v.x + mtx.r[3].y*v.y + mtx.r[3].z*v.z + mtx.r[3].w*v.w,
-    }
+    v_in := v
+    out: C3D_FVec
+    _Mtx_MultiplyFVec4_bridge(mtx, &v_in, &out)
+    return out
 }
 
-// Mtx_MultiplyFVec3 — multiply 3×3 submatrix by a FVec3 (v.x / logical W = 0).
-Mtx_MultiplyFVec3 :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
-    v4 := v
-    v4.x = 0  // zero logical W
-    return Mtx_MultiplyFVec4(mtx, v4)
+// Mtx_MultiplyFVec3 — the 3×3 part of M times a 3-component vector.
+Mtx_MultiplyFVec3 :: proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
+    v_in := v
+    out: C3D_FVec
+    _Mtx_MultiplyFVec3_bridge(mtx, &v_in, &out)
+    return out
 }
 
-// Mtx_MultiplyFVecH — multiply 4×3 matrix by FVec3 (sets logical W = 1 first).
-// C sets v.w = 1.0f; C's .w = Odin's .x.
+// Mtx_MultiplyFVecH — M * (v.xyz, 1). Odin .x is the logical W.
 Mtx_MultiplyFVecH :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
     v4 := v
-    v4.x = 1.0  // logical W = 1
+    v4.x = 1.0
     return Mtx_MultiplyFVec4(mtx, v4)
 }
 
 // ============================================================
-// Matrix multiply and transpose  (native)
+// Projection matrices — citro3d's own code through bridge.c
+//
+// These were Odin re-derivations, written when the float bridges did not
+// work. The bridges work now, so these call citro3d directly and match it
+// exactly. Use C3D_DepthMap(true, -1.0, 0.0) with them, as the examples do.
 // ============================================================
 
-// Mtx_Multiply — out = a * b.
-// Uses the flat [4][4]f32 layout where [i][j] = row i, field-position j.
-// Standard formula: out[i][j] = sum_k (a[i][k] * b[k][j]).
-Mtx_Multiply :: proc "contextless" (out, a, b: ^C3D_Mtx) {
-    am := transmute(^[4][4]f32)(a)
-    bm := transmute(^[4][4]f32)(b)
-    tmp: [4][4]f32
-    for i in 0..<4 {
-        for j in 0..<4 {
-            for k in 0..<4 {
-                tmp[i][j] += am[i][k] * bm[k][j]
-            }
-        }
-    }
-    om := transmute(^[4][4]f32)(out)
-    om^ = tmp
+Mtx_Ortho :: #force_inline proc "contextless" (out: ^C3D_Mtx,
+                                                left, right, bottom, top, near, far: f32,
+                                                isLeftHanded: bool) {
+    _Mtx_Ortho_bridge(out, left, right, bottom, top, near, far, isLeftHanded)
 }
 
-// Mtx_Transpose — in-place transpose.
-Mtx_Transpose :: proc "contextless" (out: ^C3D_Mtx) {
-    m := transmute(^[4][4]f32)(out)
-    for i in 0..<4 {
-        for j in i+1..<4 {
-            m[i][j], m[j][i] = m[j][i], m[i][j]
-        }
-    }
+// Orthographic projection turned 90 degrees for the 3DS screens.
+Mtx_OrthoTilt :: #force_inline proc "contextless" (out: ^C3D_Mtx,
+                                                    left, right, bottom, top, near, far: f32,
+                                                    isLeftHanded: bool) {
+    _Mtx_OrthoTilt_bridge(out, left, right, bottom, top, near, far, isLeftHanded)
 }
 
-// ============================================================
-// Projection matrices  (native — bypasses broken float bridges)
-//
-// All use the PICA200 depth convention:
-//   z_clip ∈ [-w, 0]  (near → z_clip=0, far → z_clip=-w)
-// Combined with C3D_DepthMap(true, -1.0, 0.0):
-//   depth = -(z_clip/w) ∈ [0, 1]  (near = 0, far = 1)
-//
-// All functions implement the isLeftHanded=true case (standard for 3DS).
-//
-// ── Derivation of row layout ────────────────────────────────
-// For every projection, rows are expressed as logical {lx,ly,lz,lw}.
-// Conversion to Odin C3D_FVec {x,y,z,w}:
-//   Odin .w = logical lx  (offset 12)
-//   Odin .z = logical ly  (offset  8)
-//   Odin .y = logical lz  (offset  4)
-//   Odin .x = logical lw  (offset  0)
-//
-// ── Tilt derivation ─────────────────────────────────────────
-// The portrait GPU framebuffer (240×400) requires a 90° rotation so
-// apps can work in 400×240 landscape.  The tilt applies:
-//   new_clip.lx = -old_clip.ly    (Tilt row 0 = -Persp/Ortho row 1)
-//   new_clip.ly = -old_clip.lx    (Tilt row 1 = -Persp/Ortho row 0)
-//   rows 2 and 3 unchanged.
-// Verified against the known-working manual OrthoTilt in Triangle-Example.
-// ============================================================
-
-// Mtx_Ortho — orthographic projection (left-handed, PICA200 depth convention).
-Mtx_Ortho :: proc "contextless" (out: ^C3D_Mtx,
-                                  left, right, bottom, top, near, far: f32,
-                                  isLeftHanded: bool) {
-    // Logical rows: clip.li = row_i · vertex
-    //   Row 0: {lx=2/(r-l), ly=0, lz=0, lw=-(r+l)/(r-l)}
-    //   Row 1: {lx=0, ly=2/(t-b), lz=0, lw=-(t+b)/(t-b)}
-    //   Row 2: {lx=0, ly=0, lz=1/(f-n), lw=-f/(f-n)}
-    //   Row 3: {lx=0, ly=0, lz=0, lw=1}
-    inv_rl := 1.0 / (right - left)
-    inv_tb := 1.0 / (top   - bottom)
-    inv_fn := 1.0 / (far   - near)
-    out.r[0] = C3D_FVec{ x = -(right+left)*inv_rl, y = 0,              z = 0,              w = 2*inv_rl }
-    out.r[1] = C3D_FVec{ x = -(top+bottom)*inv_tb, y = 0,              z = 2*inv_tb,       w = 0        }
-    out.r[2] = C3D_FVec{ x = -far*inv_fn,           y = inv_fn,         z = 0,              w = 0        }
-    out.r[3] = C3D_FVec{ x = 1,                     y = 0,              z = 0,              w = 0        }
+Mtx_Persp :: #force_inline proc "contextless" (out: ^C3D_Mtx,
+                                                fovy, aspect, near, far: f32,
+                                                isLeftHanded: bool) {
+    _Mtx_Persp_bridge(out, fovy, aspect, near, far, isLeftHanded)
 }
 
-// Mtx_OrthoTilt — orthographic projection with 90° tilt for the 3DS portrait framebuffer.
-// Verified: the output for (0,400, 0,240, 0,1, true) matches the known-working
-// manual matrix in Triangle-Example.
-Mtx_OrthoTilt :: proc "contextless" (out: ^C3D_Mtx,
-                                      left, right, bottom, top, near, far: f32,
-                                      isLeftHanded: bool) {
-    // Tilt: row 0 = -Ortho_row1, row 1 = -Ortho_row0, rows 2/3 unchanged.
-    inv_rl := 1.0 / (right - left)
-    inv_tb := 1.0 / (top   - bottom)
-    inv_fn := 1.0 / (far   - near)
-    // Row 0 = -(Ortho row 1): negate {x=-(t+b)/tb, y=0, z=2/tb, w=0}
-    out.r[0] = C3D_FVec{ x = (top+bottom)*inv_tb, y = 0,      z = -2*inv_tb, w = 0        }
-    // Row 1 = -(Ortho row 0): negate {x=-(r+l)/rl, y=0, z=0, w=2/rl}
-    out.r[1] = C3D_FVec{ x = (right+left)*inv_rl, y = 0,      z = 0,         w = -2*inv_rl }
-    // Row 2 = Ortho row 2
-    out.r[2] = C3D_FVec{ x = -far*inv_fn,          y = inv_fn, z = 0,         w = 0         }
-    // Row 3 = Ortho row 3
-    out.r[3] = C3D_FVec{ x = 1,                    y = 0,      z = 0,         w = 0         }
-}
-
-// Mtx_Persp — perspective projection (left-handed, PICA200 depth convention).
-//   fovy   — vertical field of view in radians
-//   aspect — width / height
-//   near, far — clip plane distances (positive, near < far)
-//
-// Depth mapping:
-//   A = near / (far - near)       z_clip scale
-//   B = -near * far / (far - near) z_clip bias
-//   At z=near: z_ndc = 0;  at z=far: z_ndc = -1
-Mtx_Persp :: proc "contextless" (out: ^C3D_Mtx,
-                                  fovy, aspect, near, far: f32,
-                                  isLeftHanded: bool) {
-    f   := 1.0 / math.tan_f32(fovy * 0.5)
-    inv_fn := 1.0 / (far - near)
-    A   := near * inv_fn
-    B   := -near * far * inv_fn
-    // Logical rows:
-    //   Row 0: {lx=f/a, ly=0, lz=0, lw=0}
-    //   Row 1: {lx=0, ly=f, lz=0, lw=0}
-    //   Row 2: {lx=0, ly=0, lz=A, lw=B}
-    //   Row 3: {lx=0, ly=0, lz=1, lw=0}
-    out.r[0] = C3D_FVec{ x = 0, y = 0, z = 0, w = f / aspect }
-    out.r[1] = C3D_FVec{ x = 0, y = 0, z = f, w = 0           }
-    out.r[2] = C3D_FVec{ x = B, y = A, z = 0, w = 0           }
-    out.r[3] = C3D_FVec{ x = 0, y = 1, z = 0, w = 0           }
-}
-
-// Mtx_PerspTilt — perspective with 90° tilt for the 3DS portrait framebuffer.
-//
-// Tilt: row 0 = -Persp_row1, row 1 = -Persp_row0, rows 2/3 unchanged.
-//   Row 0 = -(Persp row 1) = {lx=0, ly=-f, lz=0, lw=0}
-//   Row 1 = -(Persp row 0) = {lx=-f/a, ly=0, lz=0, lw=0}
-//   Row 2 = Persp row 2    = {lx=0, ly=0, lz=A, lw=B}
-//   Row 3 = Persp row 3    = {lx=0, ly=0, lz=±1, lw=0}
-//
-// isLeftHanded=true  (LH): clip.lw = +vz, cube placed at z=+d (camera looks +Z)
-//   A = near/(far-near),  B = -near*far/(far-near)
-// isLeftHanded=false (RH): clip.lw = -vz, cube placed at z=-d (camera looks -Z)
-//   A = far/(far-near),   B = near*far/(far-near)
-//   Verified: at vz=-near → z_ndc=0 (depth=0=near), at vz=-far → z_ndc=-1 (depth=1=far)
-//   Wait — PICA convention: near→depth=1, far→depth=0 with DepthMap(-1,0), GEQUAL, clear=0.
-//   LH check: at vz=near  → z_ndc=-1 → depth=1 ✓   at vz=far  → z_ndc=0  → depth=0 ✓
-//   RH check: at vz=-near → z_ndc=-1 → depth=1 ✓   at vz=-far → z_ndc=0  → depth=0 ✓
-Mtx_PerspTilt :: proc "contextless" (out: ^C3D_Mtx,
-                                      fovy, aspect, near, far: f32,
-                                      isLeftHanded: bool) {
-    f      := 1.0 / math.tan_f32(fovy * 0.5)
-    inv_fn := 1.0 / (far - near)
-    A, B, w3: f32
-    if isLeftHanded {
-        // LH: clip.lw = +vz; near plane at vz=+near
-        //   z_ndc = (A*vz+B)/vz;  at vz=near → -1, at vz=far → 0  → depth=1 near, 0 far ✓
-        A  = near * inv_fn           //  near/(far-near)  > 0
-        B  = -near * far * inv_fn    // -near*far/(far-near)  < 0
-        w3 = 1.0
-    } else {
-        // RH: clip.lw = -vz; near plane at vz=-near
-        //   z_ndc = (A*vz+B)/(-vz); at vz=-near → -1, at vz=-far → 0  → depth=1 near, 0 far ✓
-        //   Derivation: (-A*near+B)/near=-1 → B-A*near=-near;
-        //               (-A*far+B)/far=0    → B=A*far  → A=near*far/(far*(far-near)+near*far) ← simplifies:
-        //   Substituting: A=B/far, B-B/far*near=-near → B(1-near/far)=-near → B=-near*far/(far-near)
-        //   Then A=B/far=-near/(far-near)  (negative for near<far)
-        A  = -near * inv_fn          // -near/(far-near)  < 0  ← NOTE: negated vs LH
-        B  = -near * far * inv_fn    // -near*far/(far-near)  < 0  (same as LH)
-        w3 = -1.0
-    }
-    out.r[0] = C3D_FVec{ x = 0, y = 0,  z = -f,         w = 0           }
-    out.r[1] = C3D_FVec{ x = 0, y = 0,  z = 0,          w = -f / aspect }
-    out.r[2] = C3D_FVec{ x = B, y = A,  z = 0,          w = 0           }
-    out.r[3] = C3D_FVec{ x = 0, y = w3, z = 0,          w = 0           }
+// Perspective projection turned 90 degrees for the 3DS screens. Same as
+// Mtx_PerspTilt_Bridge in base.odin.
+Mtx_PerspTilt :: #force_inline proc "contextless" (out: ^C3D_Mtx,
+                                                    fovy, aspect, near, far: f32,
+                                                    isLeftHanded: bool) {
+    _Mtx_PerspTilt_bridge(out, fovy, aspect, near, far, isLeftHanded)
 }
 
 // ============================================================
@@ -407,41 +290,19 @@ Mtx_PerspTilt :: proc "contextless" (out: ^C3D_Mtx,
 // the sign of the angle if the direction is wrong for your scene.
 // ============================================================
 
-// _mtx_apply — helper: apply transform T to mtx (right or left side).
-@(private="file")
-_mtx_apply :: #force_inline proc "contextless" (mtx, t: ^C3D_Mtx, bRightSide: bool) {
-    tmp: C3D_Mtx
-    if bRightSide {
-        Mtx_Multiply(&tmp, mtx, t)   // out = mtx * T
-    } else {
-        Mtx_Multiply(&tmp, t, mtx)   // out = T * mtx
-    }
-    mtx^ = tmp
-}
-
 // Mtx_Scale — multiply each column of the matrix by (x, y, z).
 // Equivalent to: out = out * diag(x, y, z, 1).
 //
 // Routed through the C bridge (mtx_scale in bridge.c → citro3d Mtx_Scale).
-// The native Odin implementation built a diagonal matrix and called
-// Mtx_Multiply, but Mtx_Multiply operates on the reversed C3D flat-storage
-// layout, so the scale factors ended up permuting columns instead of scaling
-// them.  The C citro3d Mtx_Scale correctly multiplies r[i].x/y/z directly.
 Mtx_Scale :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, x, y, z: f32) {
     _Mtx_Scale_bridge(mtx, x, y, z)
 }
 
-// Mtx_Translate — apply translation (tx, ty, tz) to matrix.
-// Translation matrix logical rows:
-//   Row 0: {lx=1, 0, 0, tx}   Row 1: {0, 1, 0, ty}
-//   Row 2: {0, 0, 1, tz}       Row 3: {0, 0, 0, 1}
-Mtx_Translate :: proc "contextless" (mtx: ^C3D_Mtx, x, y, z: f32, bRightSide: bool) {
-    t: C3D_Mtx
-    t.r[0] = C3D_FVec{ x = x, y = 0, z = 0, w = 1 }
-    t.r[1] = C3D_FVec{ x = y, y = 0, z = 1, w = 0 }
-    t.r[2] = C3D_FVec{ x = z, y = 1, z = 0, w = 0 }
-    t.r[3] = C3D_FVec{ x = 1, y = 0, z = 0, w = 0 }
-    _mtx_apply(mtx, &t, bRightSide)
+// Mtx_Translate — apply a translation (x, y, z) to the matrix, on the
+// right (mtx = mtx * T) or the left (mtx = T * mtx). Through the C bridge,
+// like Mtx_Scale and the rotations.
+Mtx_Translate :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, x, y, z: f32, bRightSide: bool) {
+    _Mtx_Translate_bridge(mtx, x, y, z, bRightSide)
 }
 
 // Mtx_RotateX/Y/Z — route through the C bridge.
@@ -526,6 +387,30 @@ foreign c3d_bridge {
     _Mtx_LookAt_bridge :: proc(out: ^C3D_Mtx,
                                pos, target, up: ^C3D_FVec,
                                isLeftHanded: bool) ---
+
+    // ── Translate (float params via soft-float bits) ─────────────
+    @(link_name = "mtx_translate")
+    _Mtx_Translate_bridge :: proc(mtx: ^C3D_Mtx, x, y, z: f32, bRightSide: bool) ---
+
+    // ── Matrix × vector (C returns the vector by value) ──────────
+    @(link_name = "mtx_multiply_fvec4")
+    _Mtx_MultiplyFVec4_bridge :: proc(mtx: ^C3D_Mtx, v, out: ^C3D_FVec) ---
+
+    @(link_name = "mtx_multiply_fvec3")
+    _Mtx_MultiplyFVec3_bridge :: proc(mtx: ^C3D_Mtx, v, out: ^C3D_FVec) ---
+
+    // ── Projections (float params via soft-float bits) ───────────
+    @(link_name = "mtx_ortho")
+    _Mtx_Ortho_bridge :: proc(mtx: ^C3D_Mtx, left, right, bottom, top, near, far: f32, isLeftHanded: bool) ---
+
+    @(link_name = "mtx_ortho_tilt")
+    _Mtx_OrthoTilt_bridge :: proc(mtx: ^C3D_Mtx, left, right, bottom, top, near, far: f32, isLeftHanded: bool) ---
+
+    @(link_name = "mtx_persp")
+    _Mtx_Persp_bridge :: proc(mtx: ^C3D_Mtx, fovy, aspect, near, far: f32, isLeftHanded: bool) ---
+
+    @(link_name = "mtx_persp_tilt")
+    _Mtx_PerspTilt_bridge :: proc(mtx: ^C3D_Mtx, fovy, aspect, near, far: f32, isLeftHanded: bool) ---
 
     // ── Scale (direct column multiply — float params via soft-float bits) ───
     @(link_name = "mtx_scale")

@@ -1,0 +1,42 @@
+; vshader.v.pica — colored-triangle vertex shader for the 3DS PICA200 GPU.
+;
+; Uniform:  projection[4]  — 4×4 orthographic projection matrix
+;           (upload via C3D_FVUnifMtx4x4)
+;
+; Inputs (set up with AttrInfo_AddLoader / BufInfo_Add permutation 0x10):
+;   v0 — position (x, y, z)   — 3 floats; GPU pads w=1.0 automatically
+;   v1 — color    (r, g, b, a) — 4 floats; passed through unchanged
+;
+; Outputs:
+;   out0 — clip-space position  (projected)
+;   out1 — primary vertex color (pass-through)
+
+.fvec projection[4]
+
+; myconst: (0.0, 1.0, -1.0, 0.1) — we only use the 1.0 (yyyy component).
+.constf myconst(0.0, 1.0, -1.0, 0.1)
+.alias ones myconst.yyyy
+
+.alias vtxpos v0
+.alias vtxclr v1
+
+.out out0 position
+.out out1 color
+
+.proc main
+    ; Copy position into r0 and force w = 1.0 (in case the 3-component
+    ; attribute loader doesn't guarantee the w component).
+    mov r0,   vtxpos
+    mov r0.w, ones
+
+    ; Multiply position by the projection matrix (row-major dp4).
+    dp4 out0.x, projection[0], r0
+    dp4 out0.y, projection[1], r0
+    dp4 out0.z, projection[2], r0
+    dp4 out0.w, projection[3], r0
+
+    ; Pass color straight through.
+    mov out1, vtxclr
+
+    end
+.end

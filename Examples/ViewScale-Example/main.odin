@@ -39,7 +39,7 @@ view_scale_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
         ctru.printf("\x1b[1;1HViewScale Example")
         ctru.printf("\x1b[2;1HPress START to exit")
-        ctru.printf("\x1b[4;1HSame rect drawn at (0,0) — only scale differs:")
+        ctru.printf("\x1b[4;1HOne rect at (0,0), only scale differs:")
         ctru.printf("\x1b[5;1H  Red   0.5x | White 1.0x | Green 1.5x")
         ctru.printf("\x1b[6;1H  Blue  2.0x | Orange 3.0x")
 

@@ -43,7 +43,7 @@ httpcContext :: struct {
 // ── Enums ─────────────────────────────────────────────────────
 
 /// HTTP request method.
-HTTPC_RequestMethod :: enum u32 {
+HTTPC_RequestMethod :: enum u8 {
     GET    = 0x1,
     POST   = 0x2,
     HEAD   = 0x3,
@@ -52,13 +52,13 @@ HTTPC_RequestMethod :: enum u32 {
 }
 
 /// Internal request state returned by httpcGetRequestState.
-HTTPC_RequestStatus :: enum u32 {
+HTTPC_RequestStatus :: enum u8 {
     REQUEST_IN_PROGRESS = 0x5, // Waiting for server response headers
     DOWNLOAD_READY      = 0x7, // Headers received, body ready to read
 }
 
 /// Keep-alive connection option.
-HTTPC_KeepAlive :: enum u32 {
+HTTPC_KeepAlive :: enum u8 {
     DISABLED = 0x0,
     ENABLED  = 0x1,
 }

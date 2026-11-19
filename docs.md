@@ -820,6 +820,22 @@ visual result is correct.
 
 ## Common Gotchas
 
+### C enums are one or two bytes (short enums)
+
+devkitARM builds with short enums: a C enum takes 1 byte unless one of its values
+needs 2 or 4. The Odin binding enums match (`enum u8`, `enum u16`, `enum i8` for
+ones with negative values), so they can sit in structs and arrays exactly as C
+lays them out. If you declare a binding yourself, measure it rather than writing
+`enum u32`:
+
+```c
+// probe.c — arm-none-eabi-gcc -S, then read the .word values
+const unsigned sz = sizeof(MyEnum), off = __builtin_offsetof(MyStruct, field);
+```
+
+A function argument of enum type is unaffected (it is widened to a register
+either way); a pointer to one, a struct field or an array element is not.
+
 ### `do` cannot span multiple lines
 
 ```odin

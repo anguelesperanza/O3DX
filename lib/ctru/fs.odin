@@ -38,14 +38,14 @@ FS_ATTRIBUTE_READ_ONLY :: u32(1 << 24)
 // ── Enum types ───────────────────────────────────────────────
 
 /// Media/storage type.
-FS_MediaType :: enum u32 {
+FS_MediaType :: enum u8 {
     NAND      = 0,
     SD        = 1,
     GAME_CARD = 2,
 }
 
 /// System media type.
-FS_SystemMediaType :: enum u32 {
+FS_SystemMediaType :: enum u8 {
     CTR_NAND  = 0,
     TWL_NAND  = 1,
     SD        = 2,
@@ -81,7 +81,7 @@ FS_ArchiveID :: enum u32 {
 }
 
 /// Path type for FS_Path.
-FS_PathType :: enum u32 {
+FS_PathType :: enum u8 {
     INVALID = 0,
     EMPTY   = 1, // use with nil data pointer
     BINARY  = 2,
@@ -90,24 +90,25 @@ FS_PathType :: enum u32 {
 }
 
 /// Secure value slot.
-FS_SecureValueSlot :: enum u32 {
+FS_SecureValueSlot :: enum u16 {
     SD = 0x1000,
 }
 
 /// Card type.
-FS_CardType :: enum u32 {
+FS_CardType :: enum u8 {
     CTR = 0,
     TWL = 1,
 }
 
 /// Archive control action.
-FS_ArchiveAction :: enum u32 {
+FS_ArchiveAction :: enum u16 {
     COMMIT_SAVE_DATA = 0,
     GET_TIMESTAMP    = 1,
+    UNKNOWN          = 0x789D, // FSPXI command 0x56; purpose unknown
 }
 
 /// Secure save action.
-FS_SecureSaveAction :: enum u32 {
+FS_SecureSaveAction :: enum u8 {
     DELETE = 0,
     FORMAT = 1,
 }
@@ -298,4 +299,169 @@ foreign ctru {
     FSDIR_Close       :: proc(handle: Handle) -> Result ---
     FSDIR_SetPriority :: proc(handle: Handle, priority: u32) -> Result ---
     FSDIR_GetPriority :: proc(handle: Handle, priority: ^u32) -> Result ---
+}
+
+// ============================================================
+// Remaining FSUSER calls (3ds/services/fs.h): logs, card slot and NOR, special files, seeds
+// ============================================================
+
+// Card SPI baud rate.
+FS_CardSpiBaudRate :: enum u8 {
+    BAUDRATE_512KHZ = 0, // 512KHz.
+    BAUDRATE_1MHZ   = 1, // 1MHz.
+    BAUDRATE_2MHZ   = 2, // 2MHz.
+    BAUDRATE_4MHZ   = 3, // 4MHz.
+    BAUDRATE_8MHZ   = 4, // 8MHz.
+    BAUDRATE_16MHZ  = 5, // 16MHz.
+}
+
+// Card SPI bus mode.
+FS_CardSpiBusMode :: enum u8 {
+    BUSMODE_1BIT = 0, // 1-bit.
+    BUSMODE_4BIT = 1, // 4-bit.
+}
+
+// Card SPI bus mode.
+FS_SpecialContentType :: enum u8 {
+    UPDATE    = 1, // Update.
+    MANUAL    = 2, // Manual.
+    DLP_CHILD = 3, // DLP child.
+}
+
+// FS control actions.
+FS_Action :: enum u8 {
+    FS_ACTION_UNKNOWN = 0,
+}
+
+// File control actions.
+FS_FileAction :: enum u8 {
+    FILE_ACTION_UNKNOWN = 0,
+}
+
+// Directory control actions.
+FS_DirectoryAction :: enum u8 {
+    DIRECTORY_ACTION_UNKNOWN = 0,
+}
+
+@(default_calling_convention = "c")
+foreign ctru {
+    // Gets the SDMC log.
+    FSUSER_GetSdmcLog :: proc(out: ^u8, length: u32) -> Result ---
+
+    // Gets the NAND log.
+    FSUSER_GetNandLog :: proc(out: ^u8, length: u32) -> Result ---
+
+    // Clears the SDMC log.
+    FSUSER_ClearSdmcLog :: proc() -> Result ---
+
+    // Clears the NAND log.
+    FSUSER_ClearNandLog :: proc() -> Result ---
+
+    // Powers on the card slot.
+    FSUSER_CardSlotPowerOn :: proc(status: ^bool) -> Result ---
+
+    // Powers off the card slot.
+    FSUSER_CardSlotPowerOff :: proc(status: ^bool) -> Result ---
+
+    // Gets the card's power status.
+    FSUSER_CardSlotGetCardIFPowerStatus :: proc(status: ^bool) -> Result ---
+
+    // Executes a CARDNOR direct command.
+    FSUSER_CardNorDirectCommand :: proc(commandId: u8) -> Result ---
+
+    // Executes a CARDNOR direct command with an address.
+    FSUSER_CardNorDirectCommandWithAddress :: proc(commandId: u8, address: u32) -> Result ---
+
+    // Executes a CARDNOR direct read.
+    FSUSER_CardNorDirectRead :: proc(commandId: u8, size: u32, output: rawptr) -> Result ---
+
+    // Executes a CARDNOR direct read with an address.
+    FSUSER_CardNorDirectReadWithAddress :: proc(commandId: u8, address: u32, size: u32, output: rawptr) -> Result ---
+
+    // Executes a CARDNOR direct write.
+    FSUSER_CardNorDirectWrite :: proc(commandId: u8, size: u32, input: rawptr) -> Result ---
+
+    // Executes a CARDNOR direct write with an address.
+    FSUSER_CardNorDirectWriteWithAddress :: proc(commandId: u8, address: u32, size: u32, input: rawptr) -> Result ---
+
+    // Executes a CARDNOR 4xIO direct read.
+    FSUSER_CardNorDirectRead_4xIO :: proc(commandId: u8, address: u32, size: u32, output: rawptr) -> Result ---
+
+    // Executes a CARDNOR direct CPU write without verify.
+    FSUSER_CardNorDirectCpuWriteWithoutVerify :: proc(address: u32, size: u32, input: rawptr) -> Result ---
+
+    // Executes a CARDNOR direct sector erase without verify.
+    FSUSER_CardNorDirectSectorEraseWithoutVerify :: proc(address: u32) -> Result ---
+
+    // Sets the CARDSPI baud rate.
+    FSUSER_SetCardSpiBaudRate :: proc(baudRate: FS_CardSpiBaudRate) -> Result ---
+
+    // Sets the CARDSPI bus mode.
+    FSUSER_SetCardSpiBusMode :: proc(busMode: FS_CardSpiBusMode) -> Result ---
+
+    // Sends initialization info to ARM9.
+    FSUSER_SendInitializeInfoTo9 :: proc() -> Result ---
+
+    // Gets a special content's index.
+    FSUSER_GetSpecialContentIndex :: proc(index: ^u16, mediaType: FS_MediaType, programId: u64, type_: FS_SpecialContentType) -> Result ---
+
+    // Gets the legacy ROM header of a program.
+    FSUSER_GetLegacyRomHeader :: proc(mediaType: FS_MediaType, programId: u64, header: rawptr) -> Result ---
+
+    // Gets the legacy banner data of a program.
+    FSUSER_GetLegacyBannerData :: proc(mediaType: FS_MediaType, programId: u64, banner: rawptr) -> Result ---
+
+    // Checks a process's authority to access a save data archive.
+    FSUSER_CheckAuthorityToAccessExtSaveData :: proc(access: ^bool, mediaType: FS_MediaType, saveId: u64, processId: u32) -> Result ---
+
+    // Deletes the 3DS SDMC root.
+    FSUSER_DeleteSdmcRoot :: proc() -> Result ---
+
+    // Deletes all ext save data on the NAND.
+    FSUSER_DeleteAllExtSaveDataOnNand :: proc() -> Result ---
+
+    // Initializes the CTR file system.
+    FSUSER_InitializeCtrFileSystem :: proc() -> Result ---
+
+    // Creates the FS seed.
+    FSUSER_CreateSeed :: proc() -> Result ---
+
+    // Gets the legacy ROM header of a program.
+    FSUSER_GetLegacyRomHeader2 :: proc(headerSize: u32, mediaType: FS_MediaType, programId: u64, header: rawptr) -> Result ---
+
+    // Gets the CTR SDMC root path.
+    FSUSER_GetSdmcCtrRootPath :: proc(out: ^u8, length: u32) -> Result ---
+
+    // Exports the integrity verification seed.
+    FSUSER_ExportIntegrityVerificationSeed :: proc(seed: ^FS_IntegrityVerificationSeed) -> Result ---
+
+    // Imports an integrity verification seed.
+    FSUSER_ImportIntegrityVerificationSeed :: proc(seed: ^FS_IntegrityVerificationSeed) -> Result ---
+
+    // Gets the legacy sub banner data of a program.
+    FSUSER_GetLegacySubBannerData :: proc(bannerSize: u32, mediaType: FS_MediaType, programId: u64, banner: rawptr) -> Result ---
+
+    // Reads from a special file.
+    FSUSER_ReadSpecialFile :: proc(bytesRead: ^u32, fileOffset: u64, size: u32, data: rawptr) -> Result ---
+
+    // Gets the size of a special file.
+    FSUSER_GetSpecialFileSize :: proc(fileSize: ^u64) -> Result ---
+
+    // Reads the SMDH icon of ext save data.
+    FSUSER_ReadExtSaveDataIcon :: proc(bytesRead: ^u32, info: FS_ExtSaveDataInfo, smdhSize: u32, smdh: ^u8) -> Result ---
+
+    // Initiates a device move as the source device.
+    FSUSER_StartDeviceMoveAsSource :: proc(context_: ^FS_DeviceMoveContext) -> Result ---
+
+    // Initiates a device move as the destination device.
+    FSUSER_StartDeviceMoveAsDestination :: proc(context_: FS_DeviceMoveContext, clear: bool) -> Result ---
+
+    // Configures CTRCARD latency emulation.
+    FSUSER_SetCtrCardLatencyParameter :: proc(latency: u64, emulateEndurance: bool) -> Result ---
+
+    // Toggles cleaning up invalid save data.
+    FSUSER_SwitchCleanupInvalidSaveData :: proc(enable: bool) -> Result ---
+
+    // Enumerates system save data.
+    FSUSER_EnumerateSystemSaveData :: proc(idsWritten: ^u32, idsSize: u32, ids: ^u32) -> Result ---
 }

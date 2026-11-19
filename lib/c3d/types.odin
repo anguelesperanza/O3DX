@@ -30,12 +30,16 @@ C3D_Mtx :: struct {
 // Texture types
 // ============================================================
 
-// C3D_Tex — opaque 24-byte block matching sizeof(C3D_Tex) on ARM32.
+// C3D_Tex — opaque, 24 bytes and 4-byte aligned like the C struct (it holds
+// pointers and u32s, which citro3d reads with word loads).
 // Never access fields directly from Odin; always pass by pointer to C.
-C3D_Tex :: [24]u8
+C3D_Tex :: struct #align(4) {
+    _: [24]u8,
+}
 
 // Tex3DS_SubTexture — UV sub-region within a C3D_Tex (used by citro2d).
-Tex3DS_SubTexture :: struct #packed {
+// Not #packed: C aligns it to 4 for the floats.
+Tex3DS_SubTexture :: struct {
     width, height:            u16,
     left, top, right, bottom: f32,
 }
@@ -46,13 +50,17 @@ C3D_TexCube :: struct {
 }
 
 // C3D_TexInitParams — parameters for C3D_TexInitWithParams.
-C3D_TexInitParams :: struct {
-    width:    u16,
-    height:   u16,
-    maxLevel: u8,
-    format:   GPU_TEXCOLOR,
-    type_:    GPU_TEXTURE_MODE_PARAM, // 'type' is a reserved word in Odin
-    onVram:   bool,
+// In C the last four fields are bitfields packed into 12 bits, and the
+// struct is 8-byte aligned (CTR_ALIGN(8)), so it is 8 bytes in all.
+C3D_TexInitParams :: struct #align(8) {
+    width:  u16,
+    height: u16,
+    using bits: bit_field u16 {
+        maxLevel: u8                     | 4,
+        format:   GPU_TEXCOLOR           | 4,
+        type_:    GPU_TEXTURE_MODE_PARAM | 3, // 'type' is a reserved word in Odin
+        onVram:   bool                   | 1,
+    },
 }
 
 // C3D_DEPTHTYPE — depth buffer format selector.
@@ -78,16 +86,20 @@ GPU_RB_DEPTH24_STENCIL8  :: C3D_DEPTHTYPE(3)
 // Framebuffer types  (Phase 7)
 // ============================================================
 
+// The two formats are one byte each in C (devkitARM uses short enums), and
+// the masks are 4-bit bitfields sharing the last byte.
 C3D_FrameBuf :: struct {
-    colorBuf:  rawptr,
-    depthBuf:  rawptr,
-    width:     u16,
-    height:    u16,
-    colorFmt:  GPU_COLORBUF,
-    depthFmt:  GPU_DEPTHBUF,
-    block32:   bool,
-    colorMask: u8,
-    depthMask: u8,
+    colorBuf: rawptr,
+    depthBuf: rawptr,
+    width:    u16,
+    height:   u16,
+    using bits: bit_field u32 {
+        colorFmt:  GPU_COLORBUF | 8,
+        depthFmt:  GPU_DEPTHBUF | 8,
+        block32:   bool         | 8,
+        colorMask: u8           | 4,
+        depthMask: u8           | 4,
+    },
 }
 
 // C3D_ClearBits — passed to C3D_FrameBufClear.
@@ -133,8 +145,10 @@ C3D_BufInfo :: struct {
 // IMPORTANT: Never access fields directly from Odin.
 // Always use the bridge functions (C3D_TexEnvInit, C3D_TexEnvSrc, etc.)
 // which operate on the correct C layout via bridge.c.
-// Declared as an opaque byte array to prevent accidental field access.
-C3D_TexEnv :: [20]u8
+// Declared opaque to prevent accidental field access; 4-byte aligned like C.
+C3D_TexEnv :: struct #align(4) {
+    _: [20]u8,
+}
 
 C3D_TexEnvMode :: distinct u32
 C3D_RGB   :: C3D_TexEnvMode(1)
@@ -183,8 +197,14 @@ C3D_LightLutDA :: struct {
 
 // Opaque handles — full struct layouts are large and internal;
 // use pointers and the C3D_Light* API functions.
-C3D_LightEnv :: [1156]u8 // sizeof(C3D_LightEnv) on ARM32 — opaque
-C3D_Light    :: [64]u8   // sizeof(C3D_Light)    on ARM32 — opaque
+// Sizes are sizeof() under devkitARM. C3D_Light used to be declared 64 bytes,
+// so citro3d wrote past the end of every C3D_Light Odin allocated.
+C3D_LightEnv :: struct #align(4) {
+    _: [164]u8,
+}
+C3D_Light :: struct #align(4) {
+    _: [112]u8,
+}
 
 // ============================================================
 // Fog / gas types  (Phase 9)
@@ -229,7 +249,7 @@ C3D_ProcTexCoord :: enum u32 {
 // ============================================================
 
 // Color buffer pixel format
-GPU_COLORBUF :: enum u32 {
+GPU_COLORBUF :: enum u8 {
     RGBA8    = 0x0,
     RGB8     = 0x1,
     RGBA5551 = 0x2,
@@ -238,14 +258,14 @@ GPU_COLORBUF :: enum u32 {
 }
 
 // Depth buffer format
-GPU_DEPTHBUF :: enum u32 {
-    DEPTH24_STENCIL8 = 0x0,
+GPU_DEPTHBUF :: enum u8 {
+    DEPTH16          = 0x0,
     DEPTH24          = 0x2,
-    DEPTH16          = 0x3,
+    DEPTH24_STENCIL8 = 0x3,
 }
 
 // Texture color format
-GPU_TEXCOLOR :: enum u32 {
+GPU_TEXCOLOR :: enum u8 {
     RGBA8    = 0x0,
     RGB8     = 0x1,
     RGBA5551 = 0x2,
@@ -274,18 +294,15 @@ GPU_A8       :: GPU_TEXCOLOR.A8
 GPU_ETC1     :: GPU_TEXCOLOR.ETC1
 GPU_ETC1A4   :: GPU_TEXCOLOR.ETC1A4
 
-// Texture filter (mag / min)
-GPU_TEXTURE_FILTER_PARAM :: enum u32 {
-    NEAREST                = 0x0,
-    LINEAR                 = 0x1,
-    NEAREST_MIPMAP_NEAREST = 0x2,
-    LINEAR_MIPMAP_NEAREST  = 0x3,
-    NEAREST_MIPMAP_LINEAR  = 0x4,
-    LINEAR_MIPMAP_LINEAR   = 0x5,
+// Texture filter (mag / min). The hardware has only these two; the filter
+// between mipmap levels is set separately with C3D_TexSetFilterMipmap.
+GPU_TEXTURE_FILTER_PARAM :: enum u8 {
+    NEAREST = 0x0,
+    LINEAR  = 0x1,
 }
 
 // Texture wrap mode
-GPU_TEXTURE_WRAP_PARAM :: enum u32 {
+GPU_TEXTURE_WRAP_PARAM :: enum u8 {
     CLAMP_TO_EDGE   = 0x0,
     CLAMP_TO_BORDER = 0x1,
     REPEAT          = 0x2,
@@ -293,7 +310,7 @@ GPU_TEXTURE_WRAP_PARAM :: enum u32 {
 }
 
 // Texture mode (2D, cube, shadow, etc.)
-GPU_TEXTURE_MODE_PARAM :: enum u32 {
+GPU_TEXTURE_MODE_PARAM :: enum u8 {
     TEX2D  = 0x0,
     TEXCUBE = 0x1,
     SHADOW2D = 0x2,
@@ -303,7 +320,7 @@ GPU_TEXTURE_MODE_PARAM :: enum u32 {
 }
 
 // Cubemap face index
-GPU_TEXFACE :: enum u32 {
+GPU_TEXFACE :: enum u8 {
     TEXFACE_2D       = 0,
     POSITIVE_X       = 0,
     NEGATIVE_X       = 1,
@@ -313,16 +330,17 @@ GPU_TEXFACE :: enum u32 {
     NEGATIVE_Z       = 5,
 }
 
-// Draw primitive type
-GPU_Primitive_t :: enum u32 {
-    TRIANGLES      = 0x0,
-    TRIANGLE_STRIP = 0x1,
-    TRIANGLE_FAN   = 0x2,
-    GEOMETRY_PRIM  = 0x4,
+// Draw primitive type. The values are already shifted into place for the
+// GPU's primitive-config register, which is why they step by 0x100.
+GPU_Primitive_t :: enum u16 {
+    TRIANGLES      = 0x000,
+    TRIANGLE_STRIP = 0x100,
+    TRIANGLE_FAN   = 0x200,
+    GEOMETRY_PRIM  = 0x300,
 }
 
 // Vertex attribute data format
-GPU_FORMATS :: enum u32 {
+GPU_FORMATS :: enum u8 {
     BYTE          = 0x0,
     UNSIGNED_BYTE = 0x1,
     SHORT         = 0x2,
@@ -330,13 +348,13 @@ GPU_FORMATS :: enum u32 {
 }
 
 // Shader type
-GPU_SHADER_TYPE :: enum u32 {
+GPU_SHADER_TYPE :: enum u8 {
     VERTEX_SHADER   = 0x0,
     GEOMETRY_SHADER = 0x1,
 }
 
 // Depth / alpha / stencil test function
-GPU_TESTFUNC :: enum u32 {
+GPU_TESTFUNC :: enum u8 {
     NEVER    = 0,
     ALWAYS   = 1,
     EQUAL    = 2,
@@ -348,7 +366,7 @@ GPU_TESTFUNC :: enum u32 {
 }
 
 // Blend equation
-GPU_BLENDEQUATION :: enum u32 {
+GPU_BLENDEQUATION :: enum u8 {
     ADD              = 0,
     SUBTRACT         = 1,
     REVERSE_SUBTRACT = 2,
@@ -357,7 +375,7 @@ GPU_BLENDEQUATION :: enum u32 {
 }
 
 // Blend factor
-GPU_BLENDFACTOR :: enum u32 {
+GPU_BLENDFACTOR :: enum u8 {
     ZERO                     = 0,
     ONE                      = 1,
     SRC_COLOR                = 2,
@@ -376,24 +394,25 @@ GPU_BLENDFACTOR :: enum u32 {
 }
 
 // Write mask for depth / color buffer
-GPU_WRITEMASK :: enum u32 {
+GPU_WRITEMASK :: enum u8 {
     RED   = 0x01,
     GREEN = 0x02,
     BLUE  = 0x04,
     ALPHA = 0x08,
     DEPTH = 0x10,
+    COLOR = 0x0F, // red, green, blue and alpha
     ALL   = 0x1F,
 }
 
 // Face culling mode
-GPU_CULLMODE :: enum u32 {
+GPU_CULLMODE :: enum u8 {
     NONE          = 0,
     FRONT_CCW     = 1,
     BACK_CCW      = 2,
 }
 
 // Stencil operation
-GPU_STENCILOP :: enum u32 {
+GPU_STENCILOP :: enum u8 {
     KEEP          = 0,
     ZERO          = 1,
     REPLACE       = 2,
@@ -405,7 +424,7 @@ GPU_STENCILOP :: enum u32 {
 }
 
 // Color logic operation
-GPU_LOGICOP :: enum u32 {
+GPU_LOGICOP :: enum u8 {
     CLEAR         = 0,
     AND           = 1,
     AND_REVERSE   = 2,
@@ -425,21 +444,21 @@ GPU_LOGICOP :: enum u32 {
 }
 
 // Fragment operation mode
-GPU_FRAGOPMODE :: enum u32 {
-    DEFAULT = 0,
-    SHADOW  = 3,
-    GAS     = 8,
+GPU_FRAGOPMODE :: enum u8 {
+    GL      = 0, // normal rendering
+    GAS_ACC = 1, // accumulate into the gas buffer
+    SHADOW  = 3, // render a shadow map
 }
 
 // Scissor mode
-GPU_SCISSORMODE :: enum u32 {
+GPU_SCISSORMODE :: enum u8 {
     DISABLE  = 0,
     INVERT   = 1,
     NORMAL   = 3,
 }
 
 // Early depth test function
-GPU_EARLYDEPTHFUNC :: enum u32 {
+GPU_EARLYDEPTHFUNC :: enum u8 {
     GREATER_EQUAL = 0,
     GREATER       = 1,
     LESS_EQUAL    = 2,
@@ -447,7 +466,7 @@ GPU_EARLYDEPTHFUNC :: enum u32 {
 }
 
 // TexEnv sources
-GPU_TEVSRC :: enum u32 {
+GPU_TEVSRC :: enum u8 {
     PRIMARY_COLOR     = 0x0,
     FRAGMENT_PRIMARY  = 0x1,
     FRAGMENT_SECONDARY= 0x2,
@@ -461,22 +480,30 @@ GPU_TEVSRC :: enum u32 {
 }
 
 // TexEnv RGB channel operands (GPU_TEVOP_RGB in GPU/enums.h).
-GPU_TEVOP_RGB :: enum u32 {
+// The UNNAMED_* values are GPU_TEVOP_RGB_0x06 etc. in libctru: the hardware
+// accepts them but what they select is undocumented.
+GPU_TEVOP_RGB :: enum u8 {
     SRC_COLOR           = 0x0,
     ONE_MINUS_SRC_COLOR = 0x1,
     SRC_ALPHA           = 0x2,
     ONE_MINUS_SRC_ALPHA = 0x3,
     SRC_R               = 0x4,
     ONE_MINUS_SRC_R     = 0x5,
+    UNNAMED_0X06        = 0x6,
+    UNNAMED_0X07        = 0x7,
     SRC_G               = 0x8,
     ONE_MINUS_SRC_G     = 0x9,
+    UNNAMED_0X0A        = 0xA,
+    UNNAMED_0X0B        = 0xB,
     SRC_B               = 0xC,
     ONE_MINUS_SRC_B     = 0xD,
+    UNNAMED_0X0E        = 0xE,
+    UNNAMED_0X0F        = 0xF,
 }
 
 // TexEnv alpha channel operands (GPU_TEVOP_A in GPU/enums.h).
 // Note: the ordering starts with ALPHA (not COLOR) to match the hardware.
-GPU_TEVOP_A :: enum u32 {
+GPU_TEVOP_A :: enum u8 {
     SRC_ALPHA           = 0x0,
     ONE_MINUS_SRC_ALPHA = 0x1,
     SRC_R               = 0x2,
@@ -488,20 +515,21 @@ GPU_TEVOP_A :: enum u32 {
 }
 
 // TexEnv combine function
-GPU_COMBINEFUNC :: enum u32 {
+GPU_COMBINEFUNC :: enum u8 {
     REPLACE      = 0,
     MODULATE     = 1,
     ADD          = 2,
     ADD_SIGNED   = 3,
     INTERPOLATE  = 4,
     SUBTRACT     = 5,
-    DOT3_RGB     = 6,
+    DOT3_RGB     = 6, // dot product written to RGB only
+    DOT3_RGBA    = 7, // dot product written to RGB and alpha
     MULTIPLY_ADD = 8,
     ADD_MULTIPLY = 9,
 }
 
 // TexEnv output scale
-GPU_TEVSCALE :: enum u32 {
+GPU_TEVSCALE :: enum u8 {
     SCALE_1 = 0,
     SCALE_2 = 1,
     SCALE_4 = 2,
@@ -515,34 +543,21 @@ GPU_TEVSCALE_4 :: GPU_TEVSCALE.SCALE_4
 // GPU_PRIMARY_COLOR — shorthand for GPU_TEVSRC.PRIMARY_COLOR (= 0).
 GPU_PRIMARY_COLOR :: GPU_TEVSRC.PRIMARY_COLOR
 
-// Light LUT identifiers
-GPU_LIGHTLUTID :: enum u32 {
-    D0     = 0,
-    D1     = 1,
-    FR     = 3,
-    RB     = 4,
-    RG     = 5,
-    RR     = 6,
-    SP0    = 8,
-    SP1    = 9,
-    SP2    = 10,
-    SP3    = 11,
-    SP4    = 12,
-    SP5    = 13,
-    SP6    = 14,
-    SP7    = 15,
-    DA0    = 16,
-    DA1    = 17,
-    DA2    = 18,
-    DA3    = 19,
-    DA4    = 20,
-    DA5    = 21,
-    DA6    = 22,
-    DA7    = 23,
+// Light LUT identifiers. SP and DA are per light: C3D_LightEnvLut takes the
+// shared ones, and C3D_LightSpotLut / C3D_LightDistAttn set a light's own.
+GPU_LIGHTLUTID :: enum u8 {
+    D0 = 0, // distribution 0
+    D1 = 1, // distribution 1
+    SP = 2, // spotlight
+    FR = 3, // Fresnel
+    RB = 4, // reflection, blue
+    RG = 5, // reflection, green
+    RR = 6, // reflection, red
+    DA = 7, // distance attenuation
 }
 
 // Light LUT input source
-GPU_LIGHTLUTINPUT :: enum u32 {
+GPU_LIGHTLUTINPUT :: enum u8 {
     NH = 0,
     VH = 1,
     NV = 2,
@@ -552,7 +567,7 @@ GPU_LIGHTLUTINPUT :: enum u32 {
 }
 
 // Fresnel selector
-GPU_FRESNELSEL :: enum u32 {
+GPU_FRESNELSEL :: enum u8 {
     NO_FRESNEL       = 0,
     PRI_ALPHA_FRESNEL = 1,
     SEC_ALPHA_FRESNEL = 2,
@@ -560,35 +575,41 @@ GPU_FRESNELSEL :: enum u32 {
 }
 
 // Bump mapping mode
-GPU_BUMPMODE :: enum u32 {
+GPU_BUMPMODE :: enum u8 {
     NOTUSED = 0,
     BUMP    = 1,
     TANG    = 2,
 }
 
 // Fog mode
-GPU_FOGMODE :: enum u32 {
-    DISABLED    = 0,
-    FOG         = 5,
-    GAS_DEPTH   = 6,
-    GAS_DENSITY = 7,
+GPU_FOGMODE :: enum u8 {
+    NO_FOG = 0, // fog/gas unit off
+    FOG    = 5,
+    GAS    = 7,
 }
 
 // Gas mode
-GPU_GASMODE :: enum u32 {
+GPU_GASMODE :: enum u8 {
     PLAIN_DENSITY = 0,
-    PROJECTED_DENSITY = 1,
-    DEPTH_DENSITY = 2,
+    DEPTH_DENSITY = 1,
+}
+
+// Gas depth test
+GPU_GASDEPTHFUNC :: enum u8 {
+    NEVER   = 0,
+    ALWAYS  = 1,
+    GREATER = 2, // pass if greater than 1 - X
+    LESS    = 3, // pass if less than X
 }
 
 // Gas LUT input
-GPU_GASLUTINPUT :: enum u32 {
+GPU_GASLUTINPUT :: enum u8 {
     POSITION   = 0,
     PROJECTION = 1,
 }
 
 // Procedural texture LUT IDs
-GPU_PROCTEX_LUTID :: enum u32 {
+GPU_PROCTEX_LUTID :: enum u8 {
     NOISE  = 0,
     RGBMAP = 2,
     ALPHAMAP = 3,
@@ -598,7 +619,7 @@ GPU_PROCTEX_LUTID :: enum u32 {
 
 // Texture unit selector (bitmask — combine with | for multiple units)
 // Used with C3D_LightEnvShadowSel and raw GPU command buffer writes.
-GPU_TEXUNIT :: enum u32 {
+GPU_TEXUNIT :: enum u8 {
     TEXUNIT0 = 0x1,
     TEXUNIT1 = 0x2,
     TEXUNIT2 = 0x4,
@@ -606,7 +627,7 @@ GPU_TEXUNIT :: enum u32 {
 
 // Light LUT output scale factor
 // Source: GPU/enums.h GPU_LIGHTLUTSCALER
-GPU_LIGHTLUTSCALER :: enum u32 {
+GPU_LIGHTLUTSCALER :: enum u8 {
     LUTSCALER_1X    = 0,
     LUTSCALER_2X    = 1,
     LUTSCALER_4X    = 2,
@@ -617,14 +638,14 @@ GPU_LIGHTLUTSCALER :: enum u32 {
 
 // Light LUT bank selector
 // Source: GPU/enums.h GPU_LIGHTLUTSELECT
-GPU_LIGHTLUTSELECT :: enum u32 {
+GPU_LIGHTLUTSELECT :: enum u8 {
     LUTSELECT_COMMON = 0, // LUTs common to all lights (D0, D1, FR, RB, RG, RR)
     LUTSELECT_SP     = 1, // Spotlight LUT
     LUTSELECT_DA     = 2, // Distance attenuation LUT
 }
 
 // Procedural texture UV clamp mode
-GPU_PROCTEX_CLAMP :: enum u32 {
+GPU_PROCTEX_CLAMP :: enum u8 {
     CLAMP_TO_ZERO   = 0,
     CLAMP_TO_EDGE   = 1,
     REPEAT          = 2,
@@ -633,7 +654,7 @@ GPU_PROCTEX_CLAMP :: enum u32 {
 }
 
 // Procedural texture map function (scalar combiner)
-GPU_PROCTEX_MAPFUNC :: enum u32 {
+GPU_PROCTEX_MAPFUNC :: enum u8 {
     U     = 0,
     U2    = 1,
     V     = 2,
@@ -647,14 +668,14 @@ GPU_PROCTEX_MAPFUNC :: enum u32 {
 }
 
 // Procedural texture noise shift mode
-GPU_PROCTEX_SHIFT :: enum u32 {
+GPU_PROCTEX_SHIFT :: enum u8 {
     NONE = 0,
     ODD  = 1,
     EVEN = 2,
 }
 
 // Procedural texture filter
-GPU_PROCTEX_FILTER :: enum u32 {
+GPU_PROCTEX_FILTER :: enum u8 {
     NEAREST              = 0,
     LINEAR               = 1,
     NEAREST_MIP_NEAREST  = 2,

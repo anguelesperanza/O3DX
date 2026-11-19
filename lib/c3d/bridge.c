@@ -279,14 +279,6 @@ void c3d_tex_set_wrap(C3D_Tex* tex,
     C3D_TexSetWrap(tex, wrapS, wrapT);
 }
 
-// C3D_Tex2DGetImagePtr (level 0) — static inline in c3d/texture.h.
-// Returns a pointer to the raw pixel data buffer allocated by C3D_TexInit.
-// Use this to write Morton-tiled pixel data directly into GPU memory,
-// then call C3D_TexFlush to make it visible to the GPU.
-void* c3d_tex2d_get_image_ptr(C3D_Tex* tex) {
-    return C3D_Tex2DGetImagePtr(tex, 0, NULL);
-}
-
 // ----------------------------------------------------------------
 // C3D_RenderTargetClear — static inline in c3d/renderqueue.h.
 // Calls C3D_FrameBufClear on the target's embedded framebuffer.
@@ -509,4 +501,146 @@ void quat_look_at(C3D_FVec* source, C3D_FVec* target,
 
 void quat_from_axis_angle(C3D_FVec* axis, uint32_t angle, C3D_FQuat* out) {
     *out = Quat_FromAxisAngle(*axis, u2f(angle));
+}
+
+// ----------------------------------------------------------------
+// C3D_TexInitWithParams takes C3D_TexInitParams by value. That struct is
+// 8 bytes, 8-byte aligned and mostly bitfields, so under AAPCS it travels
+// in an even register pair (r2:r3). Taking it by pointer here means Odin
+// never has to reproduce that rule.
+// ----------------------------------------------------------------
+
+bool c3d_tex_init_with_params(C3D_Tex* tex, C3D_TexCube* cube, const C3D_TexInitParams* p) {
+    return C3D_TexInitWithParams(tex, cube, *p);
+}
+
+// ----------------------------------------------------------------
+// Texture helpers — static inline in c3d/texture.h.
+// ----------------------------------------------------------------
+
+int c3d_tex_calc_max_level(u32 width, u32 height) {
+    return C3D_TexCalcMaxLevel(width, height);
+}
+
+u32 c3d_tex_calc_level_size(u32 size, int level) {
+    return C3D_TexCalcLevelSize(size, level);
+}
+
+u32 c3d_tex_calc_total_size(u32 size, int maxLevel) {
+    return C3D_TexCalcTotalSize(size, maxLevel);
+}
+
+bool c3d_tex_init_mipmap(C3D_Tex* tex, u16 width, u16 height, GPU_TEXCOLOR format) {
+    return C3D_TexInitMipmap(tex, width, height, format);
+}
+
+bool c3d_tex_init_cube(C3D_Tex* tex, C3D_TexCube* cube, u16 width, u16 height, GPU_TEXCOLOR format) {
+    return C3D_TexInitCube(tex, cube, width, height, format);
+}
+
+bool c3d_tex_init_vram(C3D_Tex* tex, u16 width, u16 height, GPU_TEXCOLOR format) {
+    return C3D_TexInitVRAM(tex, width, height, format);
+}
+
+bool c3d_tex_init_shadow(C3D_Tex* tex, u16 width, u16 height) {
+    return C3D_TexInitShadow(tex, width, height);
+}
+
+bool c3d_tex_init_shadow_cube(C3D_Tex* tex, C3D_TexCube* cube, u16 width, u16 height) {
+    return C3D_TexInitShadowCube(tex, cube, width, height);
+}
+
+GPU_TEXTURE_MODE_PARAM c3d_tex_get_type(C3D_Tex* tex) {
+    return C3D_TexGetType(tex);
+}
+
+void* c3d_tex_get_image_ptr(C3D_Tex* tex, void* data, int level, u32* size) {
+    return C3D_TexGetImagePtr(tex, data, level, size);
+}
+
+// C3D_Tex2DGetImagePtr — pointer to one mipmap level of a 2D texture's
+// pixel data. Write Morton-tiled pixels there, then C3D_TexFlush.
+void* c3d_tex2d_get_image_ptr_level(C3D_Tex* tex, int level, u32* size) {
+    return C3D_Tex2DGetImagePtr(tex, level, size);
+}
+
+void* c3d_tex_cube_get_image_ptr(C3D_Tex* tex, GPU_TEXFACE face, int level, u32* size) {
+    return C3D_TexCubeGetImagePtr(tex, face, level, size);
+}
+
+void c3d_tex_upload(C3D_Tex* tex, const void* data) {
+    C3D_TexUpload(tex, data);
+}
+
+void c3d_tex_set_filter_mipmap(C3D_Tex* tex, GPU_TEXTURE_FILTER_PARAM filter) {
+    C3D_TexSetFilterMipmap(tex, filter);
+}
+
+// ----------------------------------------------------------------
+// Immediate mode, framebuffer, render target, matrix stack and integer
+// uniform helpers — static inline in base.h, framebuffer.h,
+// renderqueue.h, mtxstack.h and uniforms.h.
+// ----------------------------------------------------------------
+
+void c3d_imm_draw_restart_prim(void) {
+    C3D_ImmDrawRestartPrim();
+}
+
+void c3d_frame_buf_attrib(C3D_FrameBuf* fb, u16 width, u16 height, bool block32) {
+    C3D_FrameBufAttrib(fb, width, height, block32);
+}
+
+void c3d_frame_buf_color(C3D_FrameBuf* fb, void* buf, GPU_COLORBUF fmt) {
+    C3D_FrameBufColor(fb, buf, fmt);
+}
+
+void c3d_frame_buf_depth(C3D_FrameBuf* fb, void* buf, GPU_DEPTHBUF fmt) {
+    C3D_FrameBufDepth(fb, buf, fmt);
+}
+
+void c3d_render_target_detach_output(void* target) {
+    C3D_RenderTargetDetachOutput((C3D_RenderTarget*)target);
+}
+
+C3D_Mtx* mtx_stack_cur(C3D_MtxStack* stk) {
+    return MtxStack_Cur(stk);
+}
+
+void c3d_ivunif_set(GPU_SHADER_TYPE type, int id, int x, int y, int z, int w) {
+    C3D_IVUnifSet(type, id, x, y, z, w);
+}
+
+// ----------------------------------------------------------------
+// LightLut_Spotlight and LightLutDA_Quadratic are macros that pass the C
+// functions spot_step / quadratic_dist_attn to LightLut_FromFunc /
+// LightLutDA_Create as callbacks. citro3d calls those back with floats in
+// VFP registers, so the callback has to be C: an Odin procedure would read
+// its arguments from the wrong registers.
+// ----------------------------------------------------------------
+
+void light_lut_spotlight(C3D_LightLut* lut, uint32_t angle) {
+    LightLut_Spotlight(lut, u2f(angle));
+}
+
+void light_lut_da_quadratic(C3D_LightLutDA* lut, uint32_t from_, uint32_t to,
+                            uint32_t linear, uint32_t quad) {
+    LightLutDA_Quadratic(lut, u2f(from_), u2f(to), u2f(linear), u2f(quad));
+}
+
+// ----------------------------------------------------------------
+// Uniform write pointers and bool uniforms — static inline in
+// c3d/uniforms.h. (They were bound as plain functions before, which
+// failed to link when called.)
+// ----------------------------------------------------------------
+
+C3D_FVec* c3d_fvunif_write_ptr(GPU_SHADER_TYPE type, int id, int size) {
+    return C3D_FVUnifWritePtr(type, id, size);
+}
+
+C3D_IVec* c3d_ivunif_write_ptr(GPU_SHADER_TYPE type, int id) {
+    return C3D_IVUnifWritePtr(type, id);
+}
+
+void c3d_bool_unif_set(GPU_SHADER_TYPE type, int id, bool value) {
+    C3D_BoolUnifSet(type, id, value);
 }

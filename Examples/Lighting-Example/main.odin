@@ -113,7 +113,7 @@ lighting_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     c3d.C3D_LightAmbient(&light, 0.0, 0.0, 0.0)
 
     // Positional light (w=1) at (4, 4, 4) in world/view space.
-    lightPos := c3d.C3D_FVec{x=4.0, y=4.0, z=4.0, w=1.0}
+    lightPos := c3d.FVec4_New(4.0, 4.0, 4.0, 1.0)
     c3d.C3D_LightPosition(&light, &lightPos)
 
     // Scene ambient keeps dark faces visible.

@@ -37,7 +37,7 @@ sslcContext :: struct {
 // ── Certificate enums ──────────────────────────────────────────
 
 /// Built-in root CA certificates stored in the SSL module.
-SSLC_DefaultRootCert :: enum u32 {
+SSLC_DefaultRootCert :: enum u8 {
     NINTENDO_CA              = 0x1,
     NINTENDO_CA_G2           = 0x2,
     NINTENDO_CA_G3           = 0x3,
@@ -52,7 +52,7 @@ SSLC_DefaultRootCert :: enum u32 {
 }
 
 /// Built-in client certificates.
-SSLC_DefaultClientCert :: enum u32 {
+SSLC_DefaultClientCert :: enum u8 {
     CLCERTA = 0x40,
 }
 

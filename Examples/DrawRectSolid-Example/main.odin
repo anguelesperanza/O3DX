@@ -27,7 +27,7 @@ drawrectsolid_main :: proc "c" (argc:i32, argv:[^]cstring) -> i32 {
         ctru.hidScanInput()
         if ctru.hidKeysDown() & ctru.KEY_START != 0 do break
 
-        ctru.printf("\x1b[1;1HC2D_DrawLine Example")
+        ctru.printf("\x1b[1;1HC2D_DrawRectSolid Example")
         ctru.printf("\x1b[2;1HPress START to exit")
 
         c3d.C3D_FrameBegin(c3d.C3D_FRAME_SYNCDRAW)
