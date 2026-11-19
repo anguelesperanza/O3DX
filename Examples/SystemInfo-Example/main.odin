@@ -97,9 +97,26 @@ systeminfo_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     ctru.snprintf(&lineBuf[0][0], 48, "Model:    %s",  model_name(model))
     ctru.snprintf(&lineBuf[1][0], 48, "Region:   %s",  region_name(region))
     ctru.snprintf(&lineBuf[2][0], 48, "Language: %s",  lang_name(language))
-    ctru.snprintf(&lineBuf[3][0], 48, "NFC:      %s",  "yes" if nfcOK else "no")
-    ctru.snprintf(&lineBuf[4][0], 48, "Is 2DS:   %s",  "yes" if is2DS == 0 else "no")
-    cfguStatus := "OK" if cfguOK == 0 else "FAILED"
+    nfcStatus: cstring
+    if nfcOK {
+        nfcStatus = "yes"
+    } else {
+        nfcStatus = "no"
+    }
+    is2DSStatus: cstring
+    if is2DS == 0 {
+        is2DSStatus = "yes"
+    } else {
+        is2DSStatus = "no"
+    }
+    cfguStatus: cstring
+    if cfguOK == 0 {
+        cfguStatus = "OK"
+    } else {
+        cfguStatus = "FAILED"
+    }
+    ctru.snprintf(&lineBuf[3][0], 48, "NFC:      %s",  nfcStatus)
+    ctru.snprintf(&lineBuf[4][0], 48, "Is 2DS:   %s",  is2DSStatus)
     ctru.snprintf(&lineBuf[5][0], 48, "CFGU:     %s",  cfguStatus)
 
     // Parse all lines into a single static text buffer.

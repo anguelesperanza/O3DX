@@ -71,9 +71,8 @@ foreign citro3d {
     C3D_SetBufInfo :: proc(info: ^C3D_BufInfo) ---
 
     // --- Uniform upload (no-float versions) ---
-    C3D_FVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id, size: i32) -> ^C3D_FVec ---
-    C3D_IVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id: i32) -> ^u32 ---
-    C3D_BoolUnifSet    :: proc(type_: GPU_SHADER_TYPE, id: i32, value: bool) ---
+    // C3D_FVUnifWritePtr, C3D_IVUnifWritePtr and C3D_BoolUnifSet are
+    // static inline in uniforms.h: bridged below.
     // C3D_FVUnifMtxNx4 is static-inline in uniforms.h — bridged via c3d_fvunif_mtx_nx4 below.
     C3D_UpdateUniforms  :: proc(type_: GPU_SHADER_TYPE) ---
 
@@ -85,7 +84,7 @@ foreign citro3d {
         buf1a: ^u32, buf1v: u32, buf1e: ^u32, control1: u16) ---
 
     // --- Texture ---
-    C3D_TexInitWithParams  :: proc(tex: ^C3D_Tex, cube: ^C3D_TexCube, p: C3D_TexInitParams) -> bool ---
+    // C3D_TexInitWithParams is below the bridge block: it is wrapped.
     C3D_TexLoadImage       :: proc(tex: ^C3D_Tex, data: rawptr, face: GPU_TEXFACE, level: i32) ---
     C3D_TexGenerateMipmap  :: proc(tex: ^C3D_Tex, face: GPU_TEXFACE) ---
     C3D_TexBind            :: proc(unitId: i32, tex: ^C3D_Tex) ---
@@ -154,6 +153,9 @@ foreign citro3d {
     C3D_FogGasMode    :: proc(fogMode: GPU_FOGMODE, gasMode: GPU_GASMODE, zFlip: bool) ---
     C3D_FogColor      :: proc(color: u32) ---
     C3D_FogLutBind    :: proc(lut: ^C3D_FogLut) ---
+    // data points at 256 floats. Only the pointer crosses the call, so no
+    // bridge is needed.
+    FogLut_FromArray  :: proc(lut: ^C3D_FogLut, data: [^]f32) ---
     C3D_GasBeginAcc   :: proc() ---
     C3D_GasLightDirection :: proc(colorLut: u32) ---
     C3D_GasLutInput   :: proc(input: GPU_GASLUTINPUT) ---
@@ -290,6 +292,16 @@ foreign c3d_bridge {
     @(link_name = "light_lut_da_create")
     LightLutDA_Create :: proc(lut: ^C3D_LightLutDA, func: rawptr, from_, to, arg0, arg1: f32) ---
 
+    // LightLut_Spotlight — wraps the macro: a spotlight LUT that is 1 inside
+    // `angle` (radians from the spot direction) and 0 outside.
+    @(link_name = "light_lut_spotlight")
+    LightLut_Spotlight :: proc(lut: ^C3D_LightLut, angle: f32) ---
+
+    // LightLutDA_Quadratic — wraps the macro: distance attenuation
+    // 1 / (1 + linear*d + quad*d*d) over distances from_..to.
+    @(link_name = "light_lut_da_quadratic")
+    LightLutDA_Quadratic :: proc(lut: ^C3D_LightLutDA, from_, to, linear, quad: f32) ---
+
     // --- Proc tex (integer / bool params bridged for the static inline setters) ---
     @(link_name = "c3d_proc_tex_clamp")
     C3D_ProcTexClamp :: proc(pt: ^C3D_ProcTex, u, v: GPU_PROCTEX_CLAMP) ---
@@ -335,6 +347,93 @@ foreign c3d_bridge {
 
     @(link_name = "c3d_fvunif_mtx2x4")
     C3D_FVUnifMtx2x4 :: proc(type_: GPU_SHADER_TYPE, id: i32, mtx: ^C3D_Mtx) ---
+
+    // --- Uniform write pointers (static inline in c3d/uniforms.h) ---
+    // Marks `size` float uniforms from `id` dirty and returns where to write them.
+    @(link_name = "c3d_fvunif_write_ptr")
+    C3D_FVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id, size: i32) -> ^C3D_FVec ---
+
+    @(link_name = "c3d_ivunif_write_ptr")
+    C3D_IVUnifWritePtr :: proc(type_: GPU_SHADER_TYPE, id: i32) -> ^u32 ---
+
+    @(link_name = "c3d_bool_unif_set")
+    C3D_BoolUnifSet :: proc(type_: GPU_SHADER_TYPE, id: i32, value: bool) ---
+
+    // --- Integer uniform (static inline in c3d/uniforms.h) ---
+    // Each component is stored in a byte, as IVec_Pack does.
+    @(link_name = "c3d_ivunif_set")
+    C3D_IVUnifSet :: proc(type_: GPU_SHADER_TYPE, id: i32, x, y, z, w: i32) ---
+
+    // --- Immediate mode (static inline in c3d/base.h) ---
+    // Starts a new strip or fan inside one C3D_ImmDrawBegin / End pair.
+    @(link_name = "c3d_imm_draw_restart_prim")
+    C3D_ImmDrawRestartPrim :: proc() ---
+
+    // --- Framebuffer setup (static inline in c3d/framebuffer.h) ---
+    @(link_name = "c3d_frame_buf_attrib")
+    C3D_FrameBufAttrib :: proc(fb: ^C3D_FrameBuf, width, height: u16, block32: bool) ---
+
+    // buf = nil detaches the colour buffer.
+    @(link_name = "c3d_frame_buf_color")
+    C3D_FrameBufColor :: proc(fb: ^C3D_FrameBuf, buf: rawptr, fmt: GPU_COLORBUF) ---
+
+    // buf = nil detaches the depth buffer.
+    @(link_name = "c3d_frame_buf_depth")
+    C3D_FrameBufDepth :: proc(fb: ^C3D_FrameBuf, buf: rawptr, fmt: GPU_DEPTHBUF) ---
+
+    // --- Render target (static inline in c3d/renderqueue.h) ---
+    // Stops the target being shown on its screen.
+    @(link_name = "c3d_render_target_detach_output")
+    C3D_RenderTargetDetachOutput :: proc(target: rawptr) --- // C3D_RenderTarget*
+
+    // --- Matrix stack (static inline in c3d/mtxstack.h) ---
+    // The matrix on top of the stack; marks the stack dirty so the next
+    // MtxStack_Update uploads it.
+    @(link_name = "mtx_stack_cur")
+    MtxStack_Cur :: proc(stk: ^C3D_MtxStack) -> ^C3D_Mtx ---
+
+    // --- Texture init with a parameter struct ---
+    @(link_name = "c3d_tex_init_with_params")
+    _c3d_tex_init_with_params :: proc(tex: ^C3D_Tex, cube: ^C3D_TexCube, p: ^C3D_TexInitParams) -> bool ---
+}
+
+// C3D_TexInitWithParams — allocate a texture from a C3D_TexInitParams.
+// cube is nil except for cube maps. The C function takes the struct by
+// value; it goes through a bridge that takes a pointer instead, because the
+// struct is 8-byte aligned and AAPCS passes it in an even register pair.
+C3D_TexInitWithParams :: proc "contextless" (tex: ^C3D_Tex, cube: ^C3D_TexCube, p: C3D_TexInitParams) -> bool {
+    params := p
+    return _c3d_tex_init_with_params(tex, cube, &params)
+}
+
+// ============================================================
+// Small inline helpers from the C headers that only do arithmetic, so
+// they are written in Odin rather than bridged.
+// ============================================================
+
+// FogLut_CalcZ (c3d/fog.h) — eye-space Z for a depth-buffer value, given
+// the near and far planes.
+FogLut_CalcZ :: proc "contextless" (depth, near, far: f32) -> f32 {
+    return far * near / (depth * (far - near) + near)
+}
+
+// quadratic_dist_attn (c3d/lightlut.h) — 1 / (1 + linear*d + quad*d*d).
+// To build a LUT from it, use LightLutDA_Quadratic: citro3d cannot call an
+// Odin procedure as its callback.
+quadratic_dist_attn :: proc "contextless" (dist, linear, quad: f32) -> f32 {
+    return 1.0 / (1.0 + linear * dist + quad * dist * dist)
+}
+
+// spot_step (c3d/lightlut.h) — 1 when angle >= cutoff, else 0. For a LUT,
+// use LightLut_Spotlight.
+spot_step :: proc "contextless" (angle, cutoff: f32) -> f32 {
+    if angle >= cutoff do return 1.0
+    return 0.0
+}
+
+// IVec_Pack (c3d/types.h) — four bytes packed into one integer uniform.
+IVec_Pack :: proc "contextless" (x, y, z, w: u8) -> u32 {
+    return u32(x) | u32(y) << 8 | u32(z) << 16 | u32(w) << 24
 }
 
 // ── Short aliases (strip C3D_ prefix) ──────────────────────────────────────
@@ -465,3 +564,9 @@ FVUnifMtxNx4            :: C3D_FVUnifMtxNx4
 FVUnifMtx4x4            :: C3D_FVUnifMtx4x4
 FVUnifMtx3x4            :: C3D_FVUnifMtx3x4
 FVUnifMtx2x4            :: C3D_FVUnifMtx2x4
+IVUnifSet               :: C3D_IVUnifSet
+ImmDrawRestartPrim      :: C3D_ImmDrawRestartPrim
+FrameBufAttrib          :: C3D_FrameBufAttrib
+FrameBufColor           :: C3D_FrameBufColor
+FrameBufDepth           :: C3D_FrameBufDepth
+RenderTargetDetachOutput :: C3D_RenderTargetDetachOutput

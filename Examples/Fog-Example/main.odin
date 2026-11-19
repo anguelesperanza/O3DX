@@ -157,8 +157,8 @@ fog_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 
         // Slide cube toward/away from camera to show fog fading in and out.
         zPos += zDir * 0.05
-        if zPos <= -15.0 { zDir =  1.0 }
-        if zPos >= -3.0  { zDir = -1.0 }
+        if zPos <= -15.0 do zDir =  1.0
+        if zPos >= -3.0 do zDir = -1.0
 
         ctru.printf("\x1b[3;1Hz = %6.2f    ", zPos)
 

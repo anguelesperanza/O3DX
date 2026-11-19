@@ -34,7 +34,7 @@ package ctru
 // ── Enums ─────────────────────────────────────────────────────
 
 /// PCM encoding for microphone output.
-MICU_Encoding :: enum u32 {
+MICU_Encoding :: enum u8 {
     PCM8        = 0, // Unsigned 8-bit
     PCM16       = 1, // Unsigned 16-bit
     PCM8_SIGNED  = 2, // Signed 8-bit
@@ -42,7 +42,7 @@ MICU_Encoding :: enum u32 {
 }
 
 /// Microphone sample rates.
-MICU_SampleRate :: enum u32 {
+MICU_SampleRate :: enum u8 {
     RATE_32730 = 0, // ~32728 Hz
     RATE_16360 = 1, // ~16364 Hz
     RATE_10910 = 2, // ~10909 Hz

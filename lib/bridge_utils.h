@@ -19,3 +19,8 @@
 
 static inline float    u2f(uint32_t v) { float    f; memcpy(&f, &v, sizeof f); return f; }
 static inline uint32_t f2u(float    f) { uint32_t v; memcpy(&v, &f, sizeof v); return v; }
+
+// The same for double: soft-float Odin passes and returns a double's bits as
+// a 64-bit integer in a register pair; hard-float C uses d0.
+static inline double   u2d(uint64_t v) { double   d; memcpy(&d, &v, sizeof d); return d; }
+static inline uint64_t d2u(double   d) { uint64_t v; memcpy(&v, &d, sizeof v); return v; }

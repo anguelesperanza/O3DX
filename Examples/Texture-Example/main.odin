@@ -118,7 +118,8 @@ texture_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
         for y in 0..<TEX_H {
             for x in 0..<TEX_W {
                 // Morton swizzle: interleave 3-bit x and y into a 6-bit index.
-                px := x % 8;  py := y % 8
+                px := x % 8
+                py := y % 8
                 morton :=  (px & 1)        |
                            ((py & 1) << 1) |
                            ((px & 2) << 1) |
@@ -126,7 +127,8 @@ texture_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
                            ((px & 4) << 2) |
                            ((py & 4) << 3)
 
-                tile_x := x / 8;  tile_y := y / 8
+                tile_x := x / 8
+                tile_y := y / 8
                 ti  := tile_y * (TEX_W / 8) + tile_x
                 idx := (ti * 64 + morton) * 4
 
@@ -136,7 +138,9 @@ texture_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
                 case x < TEX_W/2 && y < TEX_H/2:   r = 0xFF             // red
                 case x >= TEX_W/2 && y < TEX_H/2:  g = 0xFF             // green
                 case x < TEX_W/2 && y >= TEX_H/2:  b = 0xFF             // blue
-                case:                               r = 0xFF; g = 0xFF   // yellow
+                case:                                                   // yellow
+                    r = 0xFF
+                    g = 0xFF
                 }
 
                 pixels[idx + 0] = a

@@ -112,7 +112,7 @@ lighting_color_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     c3d.C3D_LightAmbient(&light, 0.0, 0.0, 0.0)
 
     // Upper-left positional light (w=1).
-    lightPos := c3d.C3D_FVec{x=-5.0, y=4.0, z=-3.0, w=1.0}
+    lightPos := c3d.FVec4_New(-5.0, 4.0, -3.0, 1.0)
     c3d.C3D_LightPosition(&light, &lightPos)
 
     // Cool blue scene ambient — keeps shadow faces tinted blue rather than grey.

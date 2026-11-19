@@ -79,7 +79,10 @@ next_pow2 :: proc(v: int) -> int {
 // Integer log₂ of a power-of-two value.
 ilog2 :: proc(v: int) -> int {
     n, x := 0, v
-    for x > 1 { x >>= 1; n += 1 }
+    for x > 1 {
+        x >>= 1
+        n += 1
+    }
     return n
 }
 
@@ -121,7 +124,10 @@ to_abgr8 :: proc(img: ^image.Image) -> []u8 {
             dst[d+3] = src[s+0] // R
         case:
             g := src[s]
-            dst[d+0] = 0xFF; dst[d+1] = g; dst[d+2] = g; dst[d+3] = g
+            dst[d+0] = 0xFF
+            dst[d+1] = g
+            dst[d+2] = g
+            dst[d+3] = g
         }
     }
     return dst
@@ -228,7 +234,7 @@ build_t3x_single :: proc(img: ^image.Image) -> []u8 {
 // ── Atlas types ───────────────────────────────────────────────────────────────
 
 // One image to be packed into an atlas, with its canvas placement.
-PlacedImage :: struct {
+Placed_Image :: struct {
     path:   string,
     img:    ^image.Image,
     orig_i: int, // original input index — controls sub-texture entry order
@@ -241,7 +247,7 @@ PlacedImage :: struct {
 // Writes x/y into each entry on success.
 // entries must already be sorted by height descending for best results.
 // Returns true if all images fit, false otherwise.
-shelf_pack_try :: proc(entries: []PlacedImage, cw, ch: int) -> bool {
+shelf_pack_try :: proc(entries: []Placed_Image, cw, ch: int) -> bool {
     sx, sy, sh := 0, 0, 0
     for &e in entries {
         if e.img.width > cw || e.img.height > ch do return false
@@ -260,7 +266,7 @@ shelf_pack_try :: proc(entries: []PlacedImage, cw, ch: int) -> bool {
 }
 
 // Sort entries by height descending (simple insertion sort — avoids core:slice dependency).
-sort_by_height_desc :: proc(entries: []PlacedImage) {
+sort_by_height_desc :: proc(entries: []Placed_Image) {
     n := len(entries)
     for i in 1 ..< n {
         key := entries[i]
@@ -274,7 +280,7 @@ sort_by_height_desc :: proc(entries: []PlacedImage) {
 }
 
 // Sort entries by orig_i ascending (for writing sub-texture entries in input order).
-sort_by_orig_i :: proc(entries: []PlacedImage) {
+sort_by_orig_i :: proc(entries: []Placed_Image) {
     n := len(entries)
     for i in 1 ..< n {
         key := entries[i]
@@ -291,7 +297,7 @@ sort_by_orig_i :: proc(entries: []PlacedImage) {
 // entries using shelf packing sorted by height descending.
 // Returns (canvas_w, canvas_h, ok).
 // On success, every entry has its x/y fields set to its canvas position.
-find_and_pack :: proc(entries: []PlacedImage) -> (cw, ch: int, ok: bool) {
+find_and_pack :: proc(entries: []Placed_Image) -> (cw, ch: int, ok: bool) {
     // Sort by height descending for tighter shelf packing.
     sort_by_height_desc(entries)
 
@@ -311,7 +317,7 @@ find_and_pack :: proc(entries: []PlacedImage) -> (cw, ch: int, ok: bool) {
 // ── Atlas .t3x builder ────────────────────────────────────────────────────────
 
 // Composite all placed images onto a single cw × ch ABGR8 canvas.
-make_canvas :: proc(entries: []PlacedImage, cw, ch: int) -> []u8 {
+make_canvas :: proc(entries: []Placed_Image, cw, ch: int) -> []u8 {
     canvas := make([]u8, cw * ch * 4) // zeroed = transparent black
     for e in entries {
         abgr := to_abgr8(e.img)
@@ -337,7 +343,7 @@ make_canvas :: proc(entries: []PlacedImage, cw, ch: int) -> []u8 {
 // Sub-texture entries are written in ORIGINAL INPUT ORDER (sorted by orig_i)
 // so that C2D_SpriteSheetGetImage(sheet, N) returns the Nth input image —
 // matching the behaviour of the real tex3ds tool.
-build_t3x_atlas :: proc(entries: []PlacedImage, cw, ch: int) -> []u8 {
+build_t3x_atlas :: proc(entries: []Placed_Image, cw, ch: int) -> []u8 {
     canvas    := make_canvas(entries, cw, ch)
     defer delete(canvas)
     pixels    := swizzle_rgba8(canvas, cw, ch)
@@ -356,7 +362,7 @@ build_t3x_atlas :: proc(entries: []PlacedImage, cw, ch: int) -> []u8 {
     append(&buf, u8(0))                                             // mipmapLevels
 
     // Sort a working copy by orig_i so entries are written in input order.
-    ordered := make([]PlacedImage, n)
+    ordered := make([]Placed_Image, n)
     copy(ordered, entries)
     sort_by_orig_i(ordered)
 
@@ -409,7 +415,9 @@ tokenize_t3s :: proc(content: string, base_dir: string) -> []string {
 
         // Comment: skip to end of line.
         if content[i] == '#' {
-            for i < n && content[i] != '\n' { i += 1 }
+            for i < n && content[i] != '\n' {
+                i += 1
+            }
             continue
         }
 
@@ -418,7 +426,9 @@ tokenize_t3s :: proc(content: string, base_dir: string) -> []string {
             q     := content[i]
             i     += 1
             start := i
-            for i < n && content[i] != q { i += 1 }
+            for i < n && content[i] != q {
+                i += 1
+            }
             tok := content[start:i]
             if i < n do i += 1 // consume closing quote
             append(&result, resolve_token(tok, base_dir))
@@ -473,7 +483,9 @@ expand_includes :: proc(raw: []string) -> []string {
             }
             base_dir := filepath.dir(inc_path)
             tokens   := tokenize_t3s(string(data), base_dir)
-            for t in tokens { append(&result, t) }
+            for t in tokens {
+                append(&result, t)
+            }
         } else {
             append(&result, arg)
         }
@@ -610,7 +622,8 @@ main :: proc() {
         }
 
         data := build_t3x_single(img)
-        if err := os.write_entire_file(output, data); err != nil {
+        err := os.write_entire_file(output, data)
+        if err != nil {
             fmt.eprintf("Failed to write '%s': %v\n", output, err)
             os.exit(1)
         }
@@ -622,7 +635,7 @@ main :: proc() {
     // ── Atlas mode ────────────────────────────────────────────────────────
     fmt.printf("Building atlas: %d image(s) -> '%s'\n", len(inputs), output)
 
-    entries := make([]PlacedImage, len(inputs))
+    entries := make([]Placed_Image, len(inputs))
     for path, idx in inputs {
         img := load_image(path)
         if img.width > 1024 || img.height > 1024 {
@@ -630,7 +643,7 @@ main :: proc() {
                 path, img.width, img.height)
             os.exit(1)
         }
-        entries[idx] = PlacedImage{path = path, img = img, orig_i = idx}
+        entries[idx] = Placed_Image{path = path, img = img, orig_i = idx}
         fmt.printf("  [%d] %-40s  %dx%d\n", idx, path, img.width, img.height)
     }
 
@@ -643,7 +656,8 @@ main :: proc() {
     fmt.printf("Atlas canvas: %dx%d\n", cw, ch)
 
     data := build_t3x_atlas(entries, cw, ch)
-    if err := os.write_entire_file(output, data); err != nil {
+    err := os.write_entire_file(output, data)
+    if err != nil {
         fmt.eprintf("Failed to write '%s': %v\n", output, err)
         os.exit(1)
     }

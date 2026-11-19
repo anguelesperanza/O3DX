@@ -20,13 +20,13 @@ import ctru "../ctru"
 // Set to nil to turn the file off. libctru mounts sdmc:/ at start-up.
 panic_log_path: cstring = "sdmc:/o3dx_panic.log"
 
-// What to do after reporting. .Trap gives the exception screen and a dump;
-// .Exit closes the app quietly back to the Homebrew Launcher.
+// What to do after reporting. .TRAP gives the exception screen and a dump;
+// .EXIT closes the app quietly back to the Homebrew Launcher.
 Panic_Action :: enum {
-    Trap,
-    Exit,
+    TRAP,
+    EXIT,
 }
-panic_action: Panic_Action = .Trap
+panic_action: Panic_Action = .TRAP
 
 foreign import libc "system:c"
 
@@ -36,12 +36,15 @@ foreign libc {
 }
 
 assertion_failure_proc :: proc(prefix, message: string, loc: runtime.Source_Code_Location) -> ! {
+    separator := cstring("")
+    if len(message) > 0 do separator = cstring(": ")
+
     line: [512]u8
     n := ctru.snprintf(raw_data(line[:]), len(line), "%.*s(%d:%d) %.*s: %.*s%s%.*s\n",
         i32(len(loc.file_path)), raw_data(loc.file_path), loc.line, loc.column,
         i32(len(loc.procedure)), raw_data(loc.procedure),
         i32(len(prefix)), raw_data(prefix),
-        cstring(": ") if len(message) > 0 else cstring(""),
+        separator,
         i32(len(message)), raw_data(message))
     n = clamp(n, 0, i32(len(line) - 1))
     write(string(line[:n]))
@@ -57,6 +60,6 @@ assertion_failure_proc :: proc(prefix, message: string, loc: runtime.Source_Code
         }
     }
 
-    if panic_action == .Exit do c_exit(1)
+    if panic_action == .EXIT do c_exit(1)
     runtime.trap()
 }

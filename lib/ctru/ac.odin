@@ -20,7 +20,7 @@ package ctru
 // ── Enums ─────────────────────────────────────────────────────
 
 /// WiFi security protocol in use on the connected network.
-acSecurityMode :: enum u32 {
+acSecurityMode :: enum u8 {
     OPEN       = 0, // Open (no security)
     WEP_40BIT  = 1,
     WEP_104BIT = 2,

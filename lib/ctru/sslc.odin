@@ -37,23 +37,23 @@ sslcContext :: struct {
 // ── Certificate enums ──────────────────────────────────────────
 
 /// Built-in root CA certificates stored in the SSL module.
-SSLC_DefaultRootCert :: enum u32 {
-    Nintendo_CA              = 0x1,
-    Nintendo_CA_G2           = 0x2,
-    Nintendo_CA_G3           = 0x3,
-    Nintendo_Class2_CA       = 0x4,
-    Nintendo_Class2_CA_G2    = 0x5,
-    Nintendo_Class2_CA_G3    = 0x6,
-    CyberTrust               = 0x7, // GTE CyberTrust Global Root
-    AddTrust_External_CA     = 0x8, // AddTrust External CA Root
+SSLC_DefaultRootCert :: enum u8 {
+    NINTENDO_CA              = 0x1,
+    NINTENDO_CA_G2           = 0x2,
+    NINTENDO_CA_G3           = 0x3,
+    NINTENDO_CLASS2_CA       = 0x4,
+    NINTENDO_CLASS2_CA_G2    = 0x5,
+    NINTENDO_CLASS2_CA_G3    = 0x6,
+    CYBERTRUST               = 0x7, // GTE CyberTrust Global Root
+    ADDTRUST_EXTERNAL_CA     = 0x8, // AddTrust External CA Root
     COMODO                   = 0x9, // COMODO RSA Certification Authority
-    USERTrust                = 0xA, // USERTrust RSA Certification Authority
-    DigiCert_EV              = 0xB, // DigiCert High Assurance EV Root CA
+    USERTRUST                = 0xA, // USERTrust RSA Certification Authority
+    DIGICERT_EV              = 0xB, // DigiCert High Assurance EV Root CA
 }
 
 /// Built-in client certificates.
-SSLC_DefaultClientCert :: enum u32 {
-    ClCertA = 0x40,
+SSLC_DefaultClientCert :: enum u8 {
+    CLCERTA = 0x40,
 }
 
 // ── SSL option flags ───────────────────────────────────────────

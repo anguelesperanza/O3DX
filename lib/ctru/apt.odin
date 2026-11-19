@@ -9,7 +9,7 @@ package ctru
 // ── Enum types ───────────────────────────────────────────────
 
 /// NS application IDs (applet identifiers).
-NS_APPID :: enum u32 {
+NS_APPID :: enum u16 {
     NONE                = 0,
     HOMEMENU            = 0x101,
     CAMERA              = 0x110,
@@ -34,7 +34,7 @@ NS_APPID :: enum u32 {
 }
 
 /// Applet position within the applet stack.
-APT_AppletPos :: enum i32 {
+APT_AppletPos :: enum i8 {
     NONE     = -1,
     APP      = 0,
     APPLIB   = 1,
@@ -44,14 +44,14 @@ APT_AppletPos :: enum i32 {
 }
 
 /// Reply to a sleep query.
-APT_QueryReply :: enum u32 {
+APT_QueryReply :: enum u8 {
     REJECT = 0,
     ACCEPT = 1,
     LATER  = 2,
 }
 
 /// APT signals (state changes reported to the app).
-APT_Signal :: enum u32 {
+APT_Signal :: enum u8 {
     NONE         = 0,
     HOMEBUTTON   = 1,
     HOMEBUTTON2  = 2,
@@ -67,7 +67,7 @@ APT_Signal :: enum u32 {
 }
 
 /// APT commands sent as parameters between applets.
-APT_Command :: enum u32 {
+APT_Command :: enum u8 {
     NONE               = 0,
     WAKEUP             = 1,
     REQUEST            = 2,
@@ -89,12 +89,13 @@ APT_Command :: enum u32 {
 }
 
 /// APT lifecycle hook types.
-APT_HookType :: enum u32 {
+APT_HookType :: enum u8 {
     ONSUSPEND = 0, ///< App suspended (going to background).
     ONRESTORE = 1, ///< App restored (coming to foreground).
     ONSLEEP   = 2, ///< System entering sleep mode.
     ONWAKEUP  = 3, ///< System waking from sleep.
     ONEXIT    = 4, ///< App exiting.
+    COUNT     = 5, ///< Number of hook types.
 }
 
 // ── Struct / callback types ───────────────────────────────────
@@ -223,4 +224,43 @@ foreign ctru {
     APT_ReceiveDeliverArg      :: proc(param: rawptr, paramSize: uint, hmac: rawptr, sender: ^u64, received: ^bool) -> Result ---
     APT_PrepareToDoApplicationJump :: proc(flags: u8, programID: u64, mediatype: u8) -> Result ---
     APT_DoApplicationJump      :: proc(param: rawptr, paramSize: uint, hmac: rawptr) -> Result ---
+}
+
+// ============================================================
+// Remaining APT calls (3ds/services/apt.h)
+// ============================================================
+
+@(default_calling_convention = "c")
+foreign ctru {
+    // Sends an APT command through IPC, taking care of locking, opening and closing an APT session.
+    aptSendCommand :: proc(aptcmdbuf: ^u32) -> Result ---
+
+    // Sets the "deliver arg" and HMAC for the chainloader, which will be passed to the target
+    // 3DS/DS(i) application. The meaning of each parameter varies on a per-application basis.
+    aptSetChainloaderArgs :: proc(deliverArg: rawptr, deliverArgSize: uint, hmac: rawptr) ---
+
+    // Gets an applet's program information.
+    APT_GetAppletProgramInfo :: proc(id: u32, flags: u32, titleversion: ^u16) -> Result ---
+
+    // Requests to enter sleep mode, and later sets wake events if allowed to.
+    APT_SleepSystem :: proc(wakeEvents: ^PtmWakeEvents) -> Result ---
+}
+
+foreign import ctru_bridge "system:ctru_bridge"
+
+// Static inline in the C header, or float arguments: called through
+// the C wrappers in bridge.c.
+@(default_calling_convention = "c")
+foreign ctru_bridge {
+    // Create an APT_AppletAttr bitfield from its components.
+    @(link_name = "ctru_apt_make_applet_attr")
+    aptMakeAppletAttr :: proc(pos: APT_AppletPos, manualGpuRights: bool, manualDspRights: bool) -> APT_AppletAttr ---
+
+    // Handles incoming jump-to-HOME requests.
+    @(link_name = "ctru_apt_handle_jump_to_home")
+    aptHandleJumpToHome :: proc() ---
+
+    // Gets the menu's app ID.
+    @(link_name = "ctru_apt_get_menu_app_id")
+    aptGetMenuAppID :: proc() -> NS_APPID ---
 }

@@ -9,8 +9,8 @@ app.3dsx
 *.smdh
 
 # Generated romfs content (built from assets by build.bat)
-romfs/gfx/
-romfs/audio/
+**/romfs/gfx/
+**/romfs/audio/
 
 # Odin compiler output
 *.S

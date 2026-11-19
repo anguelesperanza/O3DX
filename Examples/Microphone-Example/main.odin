@@ -175,8 +175,8 @@ mic_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
                 hi := u16(micBuf[readPos])
                 readPos = (readPos + 1) % micbuf_datasize
                 s := i16(lo | (hi << 8))
-                if s < 0 { s = -s }
-                if s > maxSample { maxSample = s }
+                if s < 0 do s = -s
+                if s > maxSample do maxSample = s
                 scanned += 2
             }
             micbuf_readpos = writePos

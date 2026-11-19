@@ -159,7 +159,7 @@ camera_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     ctru.CAMU_PlayShutterSound(.MOVIE)
 
     ctru.gfxFlushBuffers()
-    ctru.gspWaitForEvent(.VBlank0, false)
+    ctru.gspWaitForEvent(.VBLANK0, false)
     ctru.gfxSwapBuffers()
 
     ctru.printf("\nRunning. START to exit.\n")
@@ -240,7 +240,7 @@ camera_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
         }
 
         ctru.gfxFlushBuffers()
-        ctru.gspWaitForEvent(.VBlank0, false)
+        ctru.gspWaitForEvent(.VBLANK0, false)
         ctru.gfxSwapBuffers()
     }
 

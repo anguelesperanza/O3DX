@@ -40,8 +40,10 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 ├── lib/                        ← Shared Odin package library (use these in your own projects)
 │   ├── bridge_utils.h          ← Shared u2f / f2u helpers for ABI bridge .c files
 │   ├── ctru/
-│   │   ├── ctru.odin           ← libctru bindings (gfx, input, console, romfs, etc.)
-│   │   └── bridge.c            ← Wrappers for static-inline libctru functions
+│   │   ├── ctru.odin           ← libctru core: gfx, input, console, GSP, allocators, romfs
+│   │   ├── <service>.odin      ← One file per libctru service or header group: fs, apt, ndsp, cam,
+│   │   │                          am, ptm, y2r, csnd, gpu, os, svc, ... — all of libctru ✅ (Phase 14)
+│   │   └── bridge.c            ← Wrappers for static-inline / float-taking libctru functions
 │   ├── c2d/
 │   │   ├── types.odin          ← Citro2D types (C2D_Image, C2D_ImageTint, C2D_Sprite, …)
 │   │   ├── base.odin           ← Core drawing, tinting, view transforms ✅
@@ -54,6 +56,7 @@ Unless not possible, all examples use a `build.bat` file instead of a Makefile.
 │   │   ├── types.odin          ← Citro3D types + all GPU_* enums ✅
 │   │   ├── base.odin           ← Full C3D foreign bindings (declared) ✅
 │   │   ├── math.odin           ← Full FVec/Mtx/Quat math library ✅ (Phase 8)
+│   │   ├── tex3ds.odin         ← Tex3DS .t3x import and subtexture helpers ✅ (Phase 14)
 │   │   └── bridge.c            ← ABI bridge for all float-param Citro3D functions
 │   ├── o3dx/                   ← Odin runtime: allocators, logger, print, assertions ✅ (Phase 13)
 │   └── libm/
@@ -169,16 +172,15 @@ The ARM32 AAPCS requires `u64` arguments to start at an **even-numbered register
 When a `u64` argument is preceded by an odd number of register-sized arguments, one register must
 be skipped as padding so the `u64` lands on an even boundary.
 
-Odin's `freestanding_arm32` target does **not** insert this padding, so any libctru function with
-a `u64` parameter in an "odd" position receives corrupted arguments at runtime — no compile-time
-warning is produced.
+Older Odin compilers did **not** insert this padding on `freestanding_arm32`, so a libctru function
+with a `u64` parameter after one register-sized argument received corrupted arguments, with no
+compile-time warning. That is what Phase 11 worked around in `FSUSER_OpenFile` and `FSFILE_SetSize`
+(see the SaveData-Example notes).
 
-**Rule of thumb:** a `u64` parameter is safe when it is either the first argument or when it is
-preceded by exactly two register-sized arguments (pointers or `u32`s). It is unsafe when it is
-preceded by exactly one register-sized argument.
-
-**Known affected functions in `lib/ctru/fs.odin`:** `FSUSER_OpenFile` and `FSFILE_SetSize`.
-See the SaveData-Example implementation notes in Phase 11 for the full analysis and workaround.
+**Current compilers get it right.** With the Odin used for Phase 14, `f(a: u32, b: u64)` passes
+`a` in `r0` and `b` in `r2:r3`, skipping `r1`, exactly as AAPCS requires. The Phase 14 bindings rely
+on this (AM, NIM, FS-PXI and others take a `u64` title ID after one `u32`). If you build with an
+older Odin, check the generated assembly for such a call before trusting it.
 
 ### The `lib/` shared packages
 
@@ -186,9 +188,9 @@ Rather than duplicating bindings in every example, all declarations live in `lib
 
 | Package | Import path | Contains |
 |---|---|---|
-| `ctru`  | `../../lib/ctru`  | gfx, input, APT (full), console, romfs, irrst, SVC (full), NDSP audio, FS filesystem |
+| `ctru`  | `../../lib/ctru`  | All of libctru: gfx, input, console, romfs, OS, SVC, every service (APT, FS, NDSP, CAM, MIC, AM, PTM, Y2R, ...), GPU command buffers, applets |
 | `c2d`   | `../../lib/c2d`   | All Citro2D types, drawing, tinting, view transforms |
-| `c3d`   | `../../lib/c3d`   | All Citro3D types, GPU enums, frame/texture/effect functions |
+| `c3d`   | `../../lib/c3d`   | All Citro3D types, GPU enums, frame/texture/effect functions, Tex3DS |
 | `audio` | `../../lib/audio` | WAV loading (`linearAlloc`-backed) and NDSP clip playback helpers |
 | `o3dx`  | `../../lib/o3dx`  | The Odin runtime: heap and temp allocators, logger, print helpers, assertion handler (Phase 13) |
 
@@ -588,26 +590,21 @@ c = sqrt((1 + nz) / 2)        -- half-angle cosine, clamped away from zero
 q = (nx/(2c), ny/(2c), c, 0)  -- quaternion (x, y, z, w)
 ```
 
-**PICA200 dp4 and reversed C3D_FVec order in temp registers**
+**dp4 gives components in their natural order**
 
-When a `dp4` group writes to a temp register, the results land in reversed C3D_FVec order —
-the first dp4 instruction fills the W component (stored in `.x`), the second fills Z (`.y`), etc.:
-```pica
-dp4 r2.x, modelView[0], r1   ; r2.x = nw_vs (= 0 for a direction)
-dp4 r2.y, modelView[1], r1   ; r2.y = nz_vs
-dp4 r2.z, modelView[2], r1   ; r2.z = ny_vs
-dp4 r2.w, modelView[3], r1   ; r2.w = nx_vs
-```
-The normalquat math therefore reads `nx = r2.w`, `ny = r2.z`, `nz = r2.y`.
-
-The view-space position is computed the same way and then swizzled back to natural order:
+`dp4 r2.x, modelView[0], r1` puts row 0's result in `r2.x`, exactly as `dp4 outpos.x, ...`
+does. The shaders read the view-space normal as `r2.xyz` and hand the lighting unit the
+negated view-space position (the vector from the surface to the eye):
 ```pica
 dp4 r5.x, modelView[0], r0
 dp4 r5.y, modelView[1], r0
 dp4 r5.z, modelView[2], r0
 dp4 r5.w, modelView[3], r0
-mov outview, r5.wzyx           ; swizzle reversed → natural (x,y,z,w)
+mov outview, -r5
 ```
+An earlier version of this shader read the temporaries in reversed order (`nz = r2.y`,
+`outview = r5.wzyx`). That was compensating for the `Mtx_Multiply` bug described below, not
+for anything the PICA200 does.
 
 **PICA200 ALU: constants must be src1, not src2**
 
@@ -621,26 +618,16 @@ add r3.x, r2.y, ones
 add r3.x, ones, r2.y
 ```
 
-**Two dp4 groups per destination, never chain through a temp**
+**`Mtx_Multiply`, `Mtx_Translate`, `Mtx_Transpose`, `Mtx_MultiplyFVec4` — fixed**
 
-Two consecutive dp4 groups reading through an intermediate temp register give wrong results
-because the reversed component order in the temp corrupts the second group's inputs. The fix
-used throughout the lighting shader is one dp4 group per logical destination, each reading
-directly from the original vertex input registers (`r0`, `r1`), never from a temp filled by a
-previous dp4 group.
-
-**`Mtx_Scale` — fixed**
-
-The original Odin implementation built a diagonal matrix and called `Mtx_Multiply`, but
-`Mtx_Multiply` operates on the reversed C3D flat-storage layout so the scale factors permuted
-columns instead of scaling them.  Fixed by routing through the C bridge (`mtx_scale` in
-`lib/c3d/bridge.c`), which calls citro3d's `Mtx_Scale` directly — it multiplies `r[i].x/y/z`
-in-place, bypassing the multiply entirely.
-
-```odin
-// Now works correctly:
-c3d.Mtx_Scale(&model, 0.5, 0.5, 0.5)
-```
+These were written in Odin as loops over the raw `[4][4]f32` memory. Each row is stored as
+`(w, z, y, x)`, so looping in index order paired the wrong elements: `Mtx_Multiply(a, identity)`
+came back with every row reversed, and everything built on it (`Mtx_Translate`, the old
+`Mtx_Scale`) was wrong with it. Examples that called both `Mtx_Translate` and `Mtx_Multiply`
+looked right because the two errors cancelled; one that used `Mtx_Identity` alone drew nothing.
+They now call citro3d: `Mtx_Multiply` and `Mtx_Transpose` directly (pointer arguments only),
+the others through `lib/c3d/bridge.c`. The projections (`Mtx_Ortho`, `Mtx_Persp` and the tilt
+versions) also call citro3d now instead of Odin re-derivations. Utilities-Example checks these.
 
 ---
 
@@ -841,7 +828,7 @@ game_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 | Temp allocator | A growing `runtime.Arena`, 1 MiB first block (`-define:O3DX_TEMP_ARENA_SIZE=<bytes>`). Call `free_all(context.temp_allocator)` once per frame. |
 | Other threads | Every `proc "c"` thread entry or callback needs `context = o3dx.thread_context()`. It shares the heap; its temp allocator is the heap too, because the arena is not thread-safe. |
 | Printing | `o3dx.print` / `println` / `printf` format with `core:fmt` into a 1 KiB stack buffer and write to stdout (the console, once `consoleInit` has run) and `svcOutputDebugString` (the emulator log). Switch either off with `o3dx.print_to_console` / `o3dx.print_to_debug`. `context.logger` is set, so `core:log` works. |
-| Assertions and `panic` | The message and location are printed, appended to `sdmc:/o3dx_panic.log`, and then the program traps (Luma3DS exception screen on hardware). `o3dx.panic_action = .Exit` exits quietly instead. Bounds-check failures do not go through this handler: the runtime traps on those directly. |
+| Assertions and `panic` | The message and location are printed, appended to `sdmc:/o3dx_panic.log`, and then the program traps (Luma3DS exception screen on hardware). `o3dx.panic_action = .EXIT` exits quietly instead. Bounds-check failures do not go through this handler: the runtime traps on those directly. |
 | Initialisers | `o3dx.init()` runs Odin's global initialisers and `@(init)` procedures (`runtime._startup_runtime`). Nothing else does, because the build uses `-no-entry-point`. |
 
 **libm / libgcc float bridge (`lib/libm`).** `core:fmt` and `core:strconv` make LLVM
@@ -877,6 +864,77 @@ the console. `Y` fails an assertion on purpose; `START` exits.
 
 > Status: every example builds and links. Runtime-Example has not yet been run on
 > hardware or in an emulator.
+
+---
+
+### ✅ Phase 14 — Complete bindings, and layouts that match C
+
+All of libctru, citro2d and citro3d is now bound: 2047 of the 2064 functions the
+headers declare, plus their enums, structs and constants. The 17 left out are
+deliberate:
+- the three functions libctru marks deprecated (`aptIsHomePressed`,
+  `gfxConfigScreen`, `IPC_Desc_CurProcessHandle`);
+- `QTMS_SetCenterBarrierPosition`, which the header declares but libctru does
+  not contain;
+- the inline-asm helpers in `synchronization.h` (`__ldrex`, `__dmb`, ...): use
+  `base:intrinsics` (`atomic_*`, `atomic_thread_fence`) instead;
+- two `__builtin_bswap` macros.
+
+Each newly bound libctru header has its own file in `lib/ctru` (`am.odin`,
+`ptm.odin`, `y2r.odin`, `gpu.odin`, ...); functions missing from services that
+were already bound were added to those services' files. `lib/c3d/tex3ds.odin`
+binds Tex3DS (`.t3x` loading straight from Odin).
+
+The new libctru bindings were generated from the headers, then checked:
+- names are the C names (`type` becomes `type_`), and enum members drop their
+  shared prefix, as elsewhere in `lib/`;
+- every enum value, enum size, struct size, alignment and field offset was
+  measured by compiling a probe with devkitARM, not copied by hand;
+- functions that are `static inline` in C, or take or return `float` /
+  `double`, go through a C wrapper in `lib/ctru/bridge.c`
+  (`ctru_<snake_case_name>`), as before. `bridge_utils.h` gained `u2d` / `d2u`
+  for doubles.
+
+**Bugs this fixed in the existing bindings.** A check of every Odin struct and
+enum against `sizeof` / `offsetof` / `_Alignof` under devkitARM found:
+
+| What | Problem | Effect before the fix |
+|---|---|---|
+| Enums | devkitARM uses short enums: a C enum is 1 or 2 bytes unless a value needs more. Odin's were all `enum u32`. | Wrong layout wherever an enum sits in a struct or array (`C3D_FrameBuf`, ...). 101 enums now use `u8` / `u16` / `i8` to match. |
+| `C3D_Light` | Declared 64 bytes; C's is 112. | citro3d wrote past the end of every `C3D_Light`. |
+| `C3D_LightEnv`, `C3D_Tex`, `C3D_TexEnv`, `DVLE_s`, `DVLP_s`, `shaderInstance_s` | Opaque `[N]u8`: 1-byte aligned (and `DVLE_s` 100 bytes, not 92). | Unaligned word access in C; wrong stride through `DVLB_s.DVLE`. Now aligned structs of the right size. |
+| `C3D_TexInitParams` | C packs four fields into bitfields and aligns to 8. | `C3D_TexInitWithParams` received the wrong bytes. Now a `bit_field`, passed through a bridge. |
+| `C3D_FrameBuf` | Formats are 1-byte enums and the masks 4-bit bitfields. | Every field after `height` was misplaced. |
+| `Tex3DS_SubTexture` | Declared `#packed`; C aligns it to 4. | Alignment only. |
+| Sockets | `sockaddr_storage` 128 bytes (C: 28), `addrinfo` with `ai_addr` and `ai_canonname` swapped, `hostent` with 32-bit `h_addrtype` / `h_length` (C: 16-bit). | Wrong data from `getaddrinfo`, `gethostbyname` and the SOC tables. |
+| `GPU_Primitive_t` | `TRIANGLE_STRIP` / `TRIANGLE_FAN` / `GEOMETRY_PRIM` were 1, 2, 4; C has 0x100, 0x200, 0x300. | Strips and fans drew as something else. |
+| `GPU_LIGHTLUTID` | Missing `SP` (2) and `DA` (7); had invented `SP0`-`DA7`. | Spotlight and distance-attenuation LUTs could not be set. |
+| `GPU_DEPTHBUF`, `GPU_FRAGOPMODE`, `GPU_FOGMODE`, `GPU_GASMODE`, `GPU_TEXTURE_FILTER_PARAM` | Values that do not exist in C, or swapped. | Gas mode, depth formats and filters set wrongly. |
+
+A program that takes the address of every foreign procedure in `ctru`, `c2d` and
+`c3d` now links. Building it found bindings that had never linked, because the C
+side has no symbol: `htons` / `htonl` / `ntohs` / `ntohl` (now byte swaps in Odin),
+`C2D_SceneTarget`, `C3D_FVUnifWritePtr`, `C3D_IVUnifWritePtr` and `C3D_BoolUnifSet`
+(now bridged), and `ndspAuxGetFrontBypass` (libctru declares it but does not
+implement it; removed).
+
+Also added: `GPU_COMBINEFUNC.DOT3_RGBA`, the unnamed `GPU_TEVOP_RGB` values,
+`GPU_WRITEMASK.COLOR`, `GPU_GASDEPTHFUNC`, and every missing citro2d / citro3d
+function (texture init variants, mipmap filter, framebuffer setup,
+`LightLut_Spotlight`, `LightLutDA_Quadratic`, `FogLut_FromArray`, ...).
+`c2d.C3D_Tex` and `c2d.Tex3DS_SubTexture` are now the `c3d` types themselves.
+
+**Style.** The house style guide (`../emulators/gbep/STYLE_GUIDE.md`, the same
+conventions as vito) is applied to every Odin file, new code included: 4-space
+indents, no `x if c else y` expressions or semicolon-joined statements, one enum
+value per line in SCREAMING_CASE, Pascal_Snake_Case for Odin-authored types.
+Binding enums that had mixed-case values now use SCREAMING_CASE too
+(`C2D_Corner.TOP_LEFT`, `C2D_TintMode.SOLID`, `GSPGPU_Event.VBLANK0`,
+`NFC_TagState.IN_RANGE`, ...), and `o3dx.Panic_Action` is `.TRAP` / `.EXIT`.
+
+> Status: every example builds and links. The new bindings have been
+> type-checked, layout-checked and linked, but most have not been called on
+> hardware.
 
 ---
 

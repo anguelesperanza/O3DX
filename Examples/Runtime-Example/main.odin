@@ -7,7 +7,10 @@ package runtime_example
 //
 // Each test prints PASS or FAIL on the top screen; the bottom screen is the
 // console, where o3dx.printf and core:log write.
-//   Y      fail an assertion on purpose (exception screen + sdmc:/o3dx_panic.log)
+//   Y      fail an assertion on purpose: the message goes to the console and
+//          sdmc:/o3dx_panic.log, then the app exits to the Homebrew Launcher
+//          (panic_action = .EXIT; the library default, .TRAP, shows Luma3DS's
+//          exception screen instead)
 //   START  exit
 //
 // Ported from vito's Examples/Runtime-Example (PS Vita).
@@ -38,7 +41,12 @@ results: [dynamic]Result
 report :: proc(name: string, ok: bool, format: string, args: ..any) {
     detail := fmt.aprintf(format, ..args)
     append(&results, Result{name, ok, detail})
-    o3dx.printf("%s %s: %s\n", "PASS" if ok else "FAIL", name, detail)
+    o3dx.printf("%s %s: %s\n", pass_fail(ok), name, detail)
+}
+
+pass_fail :: proc(ok: bool) -> cstring {
+    if ok do return "PASS"
+    return "FAIL"
 }
 
 Enemy :: struct {
@@ -201,6 +209,7 @@ run_tests :: proc() {
 @(export, link_name = "odin_main")
 game_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     context = o3dx.init()
+    o3dx.panic_action = .EXIT
 
     ctru.gfxInitDefault()
     c3d.C3D_Init(c3d.C3D_DEFAULT_CMDBUF_SIZE)
@@ -248,13 +257,16 @@ game_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
         y := f32(24)
         for r in results {
             // ctprintf allocates from context.temp_allocator, freed below each frame.
-            draw(text_buf, 8, y, 0.45, GREEN if r.ok else RED, "PASS" if r.ok else "FAIL")
+            status_color := RED
+            if r.ok do status_color = GREEN
+            draw(text_buf, 8, y, 0.45, status_color, pass_fail(r.ok))
             draw(text_buf, 44, y, 0.45, WHITE, fmt.ctprintf("%s", r.name))
             draw(text_buf, 150, y, 0.42, GREY, fmt.ctprintf("%s", r.detail))
             y += 15
         }
-        draw(text_buf, 8, y + 4, 0.55, GREEN if passed == len(results) else RED,
-             fmt.ctprintf("%d of %d passed", passed, len(results)))
+        total_color := RED
+        if passed == len(results) do total_color = GREEN
+        draw(text_buf, 8, y + 4, 0.55, total_color, fmt.ctprintf("%d of %d passed", passed, len(results)))
         draw(text_buf, 8, 222, 0.45, YELLOW, fmt.ctprintf("frame %d   Y: fail an assert   START: exit", frames))
 
         c3d.C3D_FrameEnd(0)

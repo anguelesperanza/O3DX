@@ -80,7 +80,7 @@ MVD_H264_LEVEL_5_2  :: u8(0x10)
 // ── Enums ─────────────────────────────────────────────────────
 
 /// MVDSTD operating mode.
-MVDSTD_Mode :: enum u32 {
+MVDSTD_Mode :: enum u8 {
     COLORFORMATCONV = 0, // YUV422 → RGB/BGR color conversion
     VIDEOPROCESSING = 1, // H.264 NAL unit decoding
 }

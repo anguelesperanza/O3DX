@@ -7,7 +7,7 @@ package c2d
 
 // CFG_Region — 3DS system region identifiers.
 // Passed to C2D_FontLoadSystem to select which region's system font to load.
-CFG_Region :: enum u32 {
+CFG_Region :: enum u8 {
     JPN = 0,
     USA = 1,
     EUR = 2,

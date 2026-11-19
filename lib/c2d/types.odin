@@ -1,5 +1,7 @@
 package c2d
 
+import c3d "../c3d"
+
 // ============================================================
 // Citro2D type definitions
 // ============================================================
@@ -13,22 +15,14 @@ C2D_DEFAULT_MAX_OBJECTS :: u32(4096)
 // ----------------------------------------
 // Citro3D types used by Citro2D
 //
-// C3D_Tex and Tex3DS_SubTexture are defined here as opaque / simple
-// value types so that lib/c2d has no hard dependency on lib/c3d.
-// The full structural definitions live in lib/c3d/types.odin; both
-// represent the identical memory layout.
+// citro2d is built on citro3d, so these are c3d's own types rather than
+// copies: a c3d.C3D_Tex can be passed straight to c2d.load_t3x_image.
+// (Copies stopped being interchangeable once C3D_Tex became an aligned
+// struct instead of a bare [24]u8.)
 // ----------------------------------------
 
-// C3D_Tex — opaque 24-byte block matching sizeof(C3D_Tex) on ARM32.
-// Never access fields directly from Odin; always pass by pointer to C.
-C3D_Tex :: [24]u8
-
-// Tex3DS_SubTexture — UV region within a C3D_Tex used by citro2d.
-// Fields must match the C layout exactly (packed u16 + four f32).
-Tex3DS_SubTexture :: struct #packed {
-    width, height:       u16,
-    left, top, right, bottom: f32,
-}
+C3D_Tex           :: c3d.C3D_Tex
+Tex3DS_SubTexture :: c3d.Tex3DS_SubTexture
 
 // ----------------------------------------
 // Core image type
@@ -47,11 +41,11 @@ C2D_Image :: struct {
 // ----------------------------------------
 
 // C2D_Corner — corner index used with C2D_ImageTint.
-C2D_Corner :: enum u32 {
-    TopLeft  = 0,
-    TopRight = 1,
-    BotLeft  = 2,
-    BotRight = 3,
+C2D_Corner :: enum u8 {
+    TOP_LEFT  = 0,
+    TOP_RIGHT = 1,
+    BOT_LEFT  = 2,
+    BOT_RIGHT = 3,
 }
 
 // C2D_Tint — per-corner color tint.
@@ -138,10 +132,10 @@ C2D_Sprite :: struct {
 // Tint mode  (Phase 2)
 // ----------------------------------------
 
-C2D_TintMode :: enum u32 {
-    Solid = 0,
-    Mult  = 1,
-    Luma  = 2,
+C2D_TintMode :: enum u8 {
+    SOLID = 0,
+    MULT  = 1,
+    LUMA  = 2,
 }
 
 // ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────

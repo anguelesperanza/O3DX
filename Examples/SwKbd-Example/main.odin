@@ -107,7 +107,12 @@ swkbd_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
             200, 110, 0, 0.6, 0.6, clrWhite)
 
         // The typed text (cyan if input received, grey placeholder otherwise)
-        textColor := clrGreen if hasInput else c2d.C2D_Color32(0x88, 0x88, 0x88, 0xFF)
+        textColor: u32
+        if hasInput {
+            textColor = clrGreen
+        } else {
+            textColor = c2d.C2D_Color32(0x88, 0x88, 0x88, 0xFF)
+        }
         c2d.C2D_DrawTextColor(&inputText,
             c2d.C2D_AlignCenter | c2d.C2D_WithColor,
             200, 145, 0, 0.75, 0.75, textColor)

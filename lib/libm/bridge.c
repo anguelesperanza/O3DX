@@ -15,10 +15,7 @@
 // To fix that error, add the function below.
 
 #include <math.h>
-#include "../bridge_utils.h"
-
-static inline double   u2d(uint64_t v) { double   d; memcpy(&d, &v, sizeof d); return d; }
-static inline uint64_t d2u(double   d) { uint64_t v; memcpy(&v, &d, sizeof v); return v; }
+#include "../bridge_utils.h"   // u2f / f2u / u2d / d2u
 
 #define F1(fn)  uint32_t o3dx_##fn##f(uint32_t a) { return f2u(fn##f(u2f(a))); }
 #define F2(fn)  uint32_t o3dx_##fn##f(uint32_t a, uint32_t b) { return f2u(fn##f(u2f(a), u2f(b))); }

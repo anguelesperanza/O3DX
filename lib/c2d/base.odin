@@ -32,7 +32,6 @@ foreign citro2d {
 
     // --- Scene (no float params) ---
     C2D_SceneSize          :: proc(width: u32, height: u32, tilt: bool) ---
-    C2D_SceneTarget        :: proc(target: rawptr) ---
 
     // --- Draw (no float params — takes C2D_DrawParams by pointer) ---
     // C2D_DrawImage passes floats inside a struct pointer, which
@@ -65,6 +64,10 @@ foreign c2d_bridge {
     // --- Scene begin (wraps C2D_SceneBegin which is a macro/inline) ---
     @(link_name = "c2d_scene_begin")
     C2D_SceneBegin :: proc(target: rawptr) ---
+
+    // --- Scene target (static inline): size the 2D scene to a render target ---
+    @(link_name = "c2d_scene_target")
+    C2D_SceneTarget :: proc(target: rawptr) ---
 
     // --- Draw shapes ---
     @(link_name = "c2d_draw_triangle")
@@ -180,6 +183,18 @@ foreign c2d_bridge {
 // Matches the C macro: (r | g<<8 | b<<16 | a<<24)
 // ============================================================
 
+// C2D_Clamp (c2d/base.h) — x limited to min..max.
+C2D_Clamp :: proc "contextless" (x, min, max: f32) -> f32 {
+    if x <= min do return min
+    if x >= max do return max
+    return x
+}
+
+// C2D_FloatToU8 (c2d/base.h) — 0..1 to 0..255, rounded.
+C2D_FloatToU8 :: proc "contextless" (x: f32) -> u8 {
+    return u8(255.0 * C2D_Clamp(x, 0.0, 1.0) + 0.5)
+}
+
 C2D_Color32 :: #force_inline proc "c" (r, g, b, a: u8) -> u32 {
     return u32(r) | (u32(g) << 8) | (u32(b) << 16) | (u32(a) << 24)
 }
@@ -225,5 +240,7 @@ BottomImageTint    :: C2D_BottomImageTint
 LeftImageTint      :: C2D_LeftImageTint
 RightImageTint     :: C2D_RightImageTint
 Color32            :: C2D_Color32
+Clamp              :: C2D_Clamp
+FloatToU8          :: C2D_FloatToU8
 
 load_t3x_image     :: LoadT3xImage 

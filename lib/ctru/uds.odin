@@ -27,7 +27,7 @@ package ctru
 //   // scan for networks, pick one, then:
 //   ctru.udsConnectNetwork(&found_network, "pass", 4, &bind,
 //                          ctru.UDS_BROADCAST_NETWORKNODEID,
-//                          .Client, 1, ctru.UDS_DEFAULT_RECVBUFSIZE)
+//                          .CLIENT, 1, ctru.UDS_DEFAULT_RECVBUFSIZE)
 //   defer ctru.udsDisconnectNetwork()
 //   defer ctru.udsUnbind(&bind)
 // ============================================================
@@ -64,9 +64,9 @@ UDS_SENDFLAG_Broadcast :: u8(1 << 1) // force broadcast even without broadcast N
 // ── Enums ─────────────────────────────────────────────────────
 
 /// Connection type for udsConnectNetwork.
-udsConnectionType :: enum u32 {
-    Client    = 0x1,
-    Spectator = 0x2,
+udsConnectionType :: enum u8 {
+    CLIENT    = 0x1,
+    SPECTATOR = 0x2,
 }
 
 // ── Structs ───────────────────────────────────────────────────

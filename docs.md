@@ -211,7 +211,7 @@ Use a **labeled break** to exit from inside a switch:
 ```odin
 game_loop: for ctru.aptMainLoop() {
     switch state {
-    case .Exit:
+    case .EXIT:
         break game_loop   // exits the for loop, not just the switch
     }
 }
@@ -539,9 +539,9 @@ c2d.DrawTriangle(x0,y0, x1,y1, x2,y2, c0,c1,c2, z)
 ### Tint modes
 
 ```odin
-c2d.SetTintMode(.Solid)  // default — tint colour replaces texture colour
-c2d.SetTintMode(.Mult)   // tint colour multiplied with texture colour
-c2d.SetTintMode(.Luma)   // tint based on luminance
+c2d.SetTintMode(.SOLID)  // default — tint colour replaces texture colour
+c2d.SetTintMode(.MULT)   // tint colour multiplied with texture colour
+c2d.SetTintMode(.LUMA)   // tint based on luminance
 ```
 
 ---
@@ -819,6 +819,22 @@ visual result is correct.
 ---
 
 ## Common Gotchas
+
+### C enums are one or two bytes (short enums)
+
+devkitARM builds with short enums: a C enum takes 1 byte unless one of its values
+needs 2 or 4. The Odin binding enums match (`enum u8`, `enum u16`, `enum i8` for
+ones with negative values), so they can sit in structs and arrays exactly as C
+lays them out. If you declare a binding yourself, measure it rather than writing
+`enum u32`:
+
+```c
+// probe.c — arm-none-eabi-gcc -S, then read the .word values
+const unsigned sz = sizeof(MyEnum), off = __builtin_offsetof(MyStruct, field);
+```
+
+A function argument of enum type is unaffected (it is widened to a register
+either way); a pointer to one, a struct field or an array element is not.
 
 ### `do` cannot span multiple lines
 
