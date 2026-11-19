@@ -91,8 +91,8 @@ GSPGPU_FramebufferFormat :: enum u32 {
 GSPGPU_Event :: enum u32 {
     PSC0   = 0, // Memory fill completed
     PSC1   = 1,
-    VBlank0 = 2,
-    VBlank1 = 3,
+    VBLANK0 = 2,
+    VBLANK1 = 3,
     PPF    = 4, // Display transfer finished
     P3D    = 5, // GPU command list finished
     DMA    = 6,

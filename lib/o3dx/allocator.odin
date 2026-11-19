@@ -38,7 +38,11 @@ heap_allocator_proc :: proc(allocator_data: rawptr, mode: runtime.Allocator_Mode
         if size <= 0 do return nil, nil
         ptr: rawptr
         if alignment <= MALLOC_ALIGNMENT {
-            ptr = c_calloc(1, uint(size)) if zero else c_malloc(uint(size))
+            if zero {
+                ptr = c_calloc(1, uint(size))
+            } else {
+                ptr = c_malloc(uint(size))
+            }
         } else {
             // memalign memory can be passed to free() in newlib.
             ptr = c_memalign(uint(alignment), uint(size))

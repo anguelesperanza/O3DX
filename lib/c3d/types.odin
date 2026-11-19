@@ -607,12 +607,12 @@ GPU_TEXUNIT :: enum u32 {
 // Light LUT output scale factor
 // Source: GPU/enums.h GPU_LIGHTLUTSCALER
 GPU_LIGHTLUTSCALER :: enum u32 {
-    LUTSCALER_1x    = 0,
-    LUTSCALER_2x    = 1,
-    LUTSCALER_4x    = 2,
-    LUTSCALER_8x    = 3,
-    LUTSCALER_0_25x = 6,
-    LUTSCALER_0_5x  = 7,
+    LUTSCALER_1X    = 0,
+    LUTSCALER_2X    = 1,
+    LUTSCALER_4X    = 2,
+    LUTSCALER_8X    = 3,
+    LUTSCALER_0_25X = 6,
+    LUTSCALER_0_5X  = 7,
 }
 
 // Light LUT bank selector

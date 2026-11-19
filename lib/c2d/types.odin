@@ -48,10 +48,10 @@ C2D_Image :: struct {
 
 // C2D_Corner — corner index used with C2D_ImageTint.
 C2D_Corner :: enum u32 {
-    TopLeft  = 0,
-    TopRight = 1,
-    BotLeft  = 2,
-    BotRight = 3,
+    TOP_LEFT  = 0,
+    TOP_RIGHT = 1,
+    BOT_LEFT  = 2,
+    BOT_RIGHT = 3,
 }
 
 // C2D_Tint — per-corner color tint.
@@ -139,9 +139,9 @@ C2D_Sprite :: struct {
 // ----------------------------------------
 
 C2D_TintMode :: enum u32 {
-    Solid = 0,
-    Mult  = 1,
-    Luma  = 2,
+    SOLID = 0,
+    MULT  = 1,
+    LUMA  = 2,
 }
 
 // ── Short aliases (strip C2D_ prefix) ──────────────────────────────────────

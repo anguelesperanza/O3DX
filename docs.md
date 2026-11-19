@@ -211,7 +211,7 @@ Use a **labeled break** to exit from inside a switch:
 ```odin
 game_loop: for ctru.aptMainLoop() {
     switch state {
-    case .Exit:
+    case .EXIT:
         break game_loop   // exits the for loop, not just the switch
     }
 }
@@ -539,9 +539,9 @@ c2d.DrawTriangle(x0,y0, x1,y1, x2,y2, c0,c1,c2, z)
 ### Tint modes
 
 ```odin
-c2d.SetTintMode(.Solid)  // default — tint colour replaces texture colour
-c2d.SetTintMode(.Mult)   // tint colour multiplied with texture colour
-c2d.SetTintMode(.Luma)   // tint based on luminance
+c2d.SetTintMode(.SOLID)  // default — tint colour replaces texture colour
+c2d.SetTintMode(.MULT)   // tint colour multiplied with texture colour
+c2d.SetTintMode(.LUMA)   // tint based on luminance
 ```
 
 ---

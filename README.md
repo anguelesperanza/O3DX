@@ -841,7 +841,7 @@ game_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
 | Temp allocator | A growing `runtime.Arena`, 1 MiB first block (`-define:O3DX_TEMP_ARENA_SIZE=<bytes>`). Call `free_all(context.temp_allocator)` once per frame. |
 | Other threads | Every `proc "c"` thread entry or callback needs `context = o3dx.thread_context()`. It shares the heap; its temp allocator is the heap too, because the arena is not thread-safe. |
 | Printing | `o3dx.print` / `println` / `printf` format with `core:fmt` into a 1 KiB stack buffer and write to stdout (the console, once `consoleInit` has run) and `svcOutputDebugString` (the emulator log). Switch either off with `o3dx.print_to_console` / `o3dx.print_to_debug`. `context.logger` is set, so `core:log` works. |
-| Assertions and `panic` | The message and location are printed, appended to `sdmc:/o3dx_panic.log`, and then the program traps (Luma3DS exception screen on hardware). `o3dx.panic_action = .Exit` exits quietly instead. Bounds-check failures do not go through this handler: the runtime traps on those directly. |
+| Assertions and `panic` | The message and location are printed, appended to `sdmc:/o3dx_panic.log`, and then the program traps (Luma3DS exception screen on hardware). `o3dx.panic_action = .EXIT` exits quietly instead. Bounds-check failures do not go through this handler: the runtime traps on those directly. |
 | Initialisers | `o3dx.init()` runs Odin's global initialisers and `@(init)` procedures (`runtime._startup_runtime`). Nothing else does, because the build uses `-no-entry-point`. |
 
 **libm / libgcc float bridge (`lib/libm`).** `core:fmt` and `core:strconv` make LLVM

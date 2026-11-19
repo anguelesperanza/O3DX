@@ -28,16 +28,16 @@ BODY_CAP   :: 4096  // download at most this many bytes
 
 // ── Download state ────────────────────────────────────────────────────
 
-DownloadState :: enum u8 {
-    Pending,     // hasn't run yet
-    NoWiFi,      // acWaitInternetConnection failed
-    HTTPCFail,   // httpcInit / httpcOpenContext failed
-    RequestFail, // httpcBeginRequest failed
-    DownloadFail,// httpcDownloadData returned unexpected error
-    Done,        // success
+Download_State :: enum u8 {
+    PENDING,       // hasn't run yet
+    NO_WIFI,       // acWaitInternetConnection failed
+    HTTPC_FAIL,    // httpcInit / httpcOpenContext failed
+    REQUEST_FAIL,  // httpcBeginRequest failed
+    DOWNLOAD_FAIL, // httpcDownloadData returned unexpected error
+    DONE,          // success
 }
 
-g_state:        DownloadState
+g_state:        Download_State
 g_status_code:  u32
 g_downloaded:   u32
 g_body:         [BODY_CAP + 1]u8  // +1 for null terminator
@@ -48,7 +48,8 @@ g_body:         [BODY_CAP + 1]u8  // +1 for null terminator
 // replacing control characters (except space) with a space.
 // Returns the number of bytes written.  dst is NOT null-terminated here.
 strip_to_printable :: proc "c" (dst: [^]u8, src: [^]u8, src_len: u32, max: u32) -> u32 {
-    n := src_len if src_len < max else max
+    n := max
+    if src_len < max do n = src_len
     j := u32(0)
     for i := u32(0); i < n; i += 1 {
         ch := src[i]
@@ -96,19 +97,19 @@ httpget_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     rc := ctru.acInit()
     if rc != 0 {
         ctru.printf("      acInit failed: 0x%08lX\n", rc)
-        g_state = .NoWiFi
+        g_state = .NO_WIFI
     }
 
-    if g_state == .Pending {
+    if g_state == .PENDING {
         ctru.printf("[2/4] Waiting for internet...\n")
         rc = ctru.acWaitInternetConnection()
         if rc != 0 {
             ctru.printf("      No connection: 0x%08lX\n", rc)
-            g_state = .NoWiFi
+            g_state = .NO_WIFI
         }
     }
 
-    if g_state == .Pending {
+    if g_state == .PENDING {
         ctru.printf("      Online!\n\n")
 
         // Step 2: HTTPC init
@@ -116,17 +117,17 @@ httpget_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
         rc = ctru.httpcInit(0)  // 0 = no shared mem needed (GET request)
         if rc != 0 {
             ctru.printf("      httpcInit failed: 0x%08lX\n", rc)
-            g_state = .HTTPCFail
+            g_state = .HTTPC_FAIL
         }
     }
 
-    if g_state == .Pending {
+    if g_state == .PENDING {
         // Open context, begin, download — then tear down HTTPC
         ctx: ctru.httpcContext
         rc = ctru.httpcOpenContext(&ctx, .GET, TARGET_URL, 0)
         if rc != 0 {
             ctru.printf("      httpcOpenContext failed: 0x%08lX\n", rc)
-            g_state = .HTTPCFail
+            g_state = .HTTPC_FAIL
             ctru.httpcExit()
         } else {
             // Step 3: Send
@@ -134,7 +135,7 @@ httpget_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
             rc = ctru.httpcBeginRequest(&ctx)
             if rc != 0 {
                 ctru.printf("      httpcBeginRequest failed: 0x%08lX\n", rc)
-                g_state = .RequestFail
+                g_state = .REQUEST_FAIL
                 ctru.httpcCancelConnection(&ctx)
                 ctru.httpcCloseContext(&ctx)
                 ctru.httpcExit()
@@ -151,18 +152,18 @@ httpget_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
                 // 0 = full body fit in buffer; DOWNLOADPENDING = body was larger
                 if rc == 0 || u32(rc) == ctru.HTTPC_RESULTCODE_DOWNLOADPENDING {
                     g_body[g_downloaded] = 0  // null-terminate
-                    g_state = .Done
+                    g_state = .DONE
                     ctru.printf("      %u bytes downloaded\n", g_downloaded)
                     if u32(rc) == ctru.HTTPC_RESULTCODE_DOWNLOADPENDING {
                         ctru.printf("      (body truncated to %u bytes)\n", BODY_CAP)
                     }
                 } else {
                     ctru.printf("      Download failed: 0x%08lX\n", rc)
-                    g_state = .DownloadFail
+                    g_state = .DOWNLOAD_FAIL
                 }
 
                 // If we didn't consume the full stream, cancel before closing
-                if u32(rc) == ctru.HTTPC_RESULTCODE_DOWNLOADPENDING || g_state == .DownloadFail {
+                if u32(rc) == ctru.HTTPC_RESULTCODE_DOWNLOADPENDING || g_state == .DOWNLOAD_FAIL {
                     ctru.httpcCancelConnection(&ctx)
                 }
 
@@ -195,29 +196,29 @@ httpget_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     previewBuf: [161]u8  // 160 chars + null
 
     switch g_state {
-    case .Done:
+    case .DONE:
         ctru.snprintf(&statusLine[0], 48, "HTTP %u", g_status_code)
         ctru.snprintf(&sizeLine[0],   48, "%u bytes downloaded", g_downloaded)
         // Sanitise first 160 bytes of body for display
         n := strip_to_printable(&previewBuf[0], &g_body[0], g_downloaded, 160)
         previewBuf[n] = 0
-    case .NoWiFi:
+    case .NO_WIFI:
         ctru.snprintf(&statusLine[0], 48, "No WiFi connection")
         ctru.snprintf(&sizeLine[0],   48, "Connect to WiFi and retry")
         previewBuf[0] = 0
-    case .HTTPCFail:
+    case .HTTPC_FAIL:
         ctru.snprintf(&statusLine[0], 48, "HTTPC init failed")
         ctru.snprintf(&sizeLine[0],   48, "See bottom screen")
         previewBuf[0] = 0
-    case .RequestFail:
+    case .REQUEST_FAIL:
         ctru.snprintf(&statusLine[0], 48, "Request failed")
         ctru.snprintf(&sizeLine[0],   48, "See bottom screen")
         previewBuf[0] = 0
-    case .DownloadFail:
+    case .DOWNLOAD_FAIL:
         ctru.snprintf(&statusLine[0], 48, "Download failed")
         ctru.snprintf(&sizeLine[0],   48, "See bottom screen")
         previewBuf[0] = 0
-    case .Pending:
+    case .PENDING:
         // shouldn't reach here
         ctru.snprintf(&statusLine[0], 48, "Unknown state")
         sizeLine[0]   = 0
@@ -231,7 +232,12 @@ httpget_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     c2d.C2D_TextParse(&sizeText,    dynBuf, cstring(&sizeLine[0]))
     c2d.C2D_TextParse(&previewText, dynBuf, cstring(&previewBuf[0]))
 
-    clrResult := clrGreen if g_state == .Done else clrRed
+    clrResult: u32
+    if g_state == .DONE {
+        clrResult = clrGreen
+    } else {
+        clrResult = clrRed
+    }
 
     // ── Main render loop ──────────────────────────────────────────
     for ctru.aptMainLoop() {

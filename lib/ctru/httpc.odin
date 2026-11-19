@@ -18,7 +18,7 @@ package ctru
 //   defer ctru.httpcCloseContext(&ctx)
 //
 //   // For HTTPS, trust Nintendo's built-in CA bundle:
-//   ctru.httpcAddDefaultCert(&ctx, .DigiCert_EV)
+//   ctru.httpcAddDefaultCert(&ctx, .DIGICERT_EV)
 //   // Or disable cert verification entirely (insecure):
 //   ctru.httpcSetSSLOpt(&ctx, ctru.SSLCOPT_DisableVerify)
 //

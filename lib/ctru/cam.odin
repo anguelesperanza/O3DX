@@ -80,7 +80,7 @@ CAMU_Size :: enum u32 {
     CIF         = 0x3, // 352x288
     QCIF        = 0x4, // 176x144
     DS_LCD      = 0x5, // 256x192
-    DS_LCDx4    = 0x6, // 512x384
+    DS_LCDX4    = 0x6, // 512x384
     CTR_TOP_LCD = 0x7, // 400x240
     // Alias: CTR bottom LCD = QVGA (320x240)
 }

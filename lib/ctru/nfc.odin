@@ -8,7 +8,7 @@ package ctru
 //
 // Typical amiibo read flow:
 //
-//   ctru.nfcInit(.NFCTag)
+//   ctru.nfcInit(.NFC_TAG)
 //   defer ctru.nfcExit()
 //
 //   ctru.nfcStartScanning(ctru.NFC_STARTSCAN_DEFAULTINPUT)
@@ -17,7 +17,7 @@ package ctru
 //   state: ctru.NFC_TagState
 //   for ctru.aptMainLoop() {
 //       ctru.nfcGetTagState(&state)
-//       if state == .InRange { break }
+//       if state == .IN_RANGE { break }
 //   }
 //
 //   // Load the amiibo data
@@ -26,7 +26,7 @@ package ctru
 //   // Wait for it to be ready
 //   for ctru.aptMainLoop() {
 //       ctru.nfcGetTagState(&state)
-//       if state == .DataReady { break }
+//       if state == .DATA_READY { break }
 //   }
 //
 //   config: ctru.NFC_AmiiboConfig
@@ -58,19 +58,19 @@ NFC_AMIIBO_FLAG_APPDATA_SETUP :: u8(1 << 5)
 
 /// Operation type passed to nfcInit.
 NFC_OpType :: enum u32 {
-    Type1  = 1, // Unknown
-    NFCTag = 2, // Default — use for amiibo
-    RawNFC = 3, // Raw NFC tag commands (>=10.0.0-X only)
+    TYPE1  = 1, // Unknown
+    NFC_TAG = 2, // Default — use for amiibo
+    RAW_NFC = 3, // Raw NFC tag commands (>=10.0.0-X only)
 }
 
 /// Current NFC tag state returned by nfcGetTagState.
 NFC_TagState :: enum u32 {
-    Uninitialized  = 0, // nfcInit() not called yet
-    ScanningStopped = 1, // nfcInit() succeeded; not scanning
-    Scanning        = 2, // nfcStartScanning() succeeded
-    InRange         = 3, // Tag detected; set automatically
-    OutOfRange      = 4, // Tag moved away; must stop+start to scan again
-    DataReady       = 5, // nfcLoadAmiiboData() succeeded
+    UNINITIALIZED  = 0, // nfcInit() not called yet
+    SCANNING_STOPPED = 1, // nfcInit() succeeded; not scanning
+    SCANNING        = 2, // nfcStartScanning() succeeded
+    IN_RANGE         = 3, // Tag detected; set automatically
+    OUT_OF_RANGE      = 4, // Tag moved away; must stop+start to scan again
+    DATA_READY       = 5, // nfcLoadAmiiboData() succeeded
 }
 
 // ── Structs ───────────────────────────────────────────────────
@@ -132,7 +132,7 @@ foreign ctru {
 
     // ── Lifecycle ─────────────────────────────────────────────
 
-    // op_type: use .NFCTag for amiibo; .RawNFC for raw NFC commands (>=10.0.0).
+    // op_type: use .NFC_TAG for amiibo; .RAW_NFC for raw NFC commands (>=10.0.0).
     nfcInit :: proc(op_type: NFC_OpType) -> Result ---
     nfcExit :: proc() ---
 
