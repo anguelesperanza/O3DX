@@ -10,13 +10,13 @@ package c3d
 // ============================================================
 
 // C3D_FVec — 4-component float vector.
-// Mirrors the C union (accessible as .x/.y/.z/.w).
+// Fields are in citro3d's order (w, z, y, x; c3d/types.h), so .x is C's .x.
 C3D_FVec :: struct {
-    x, y, z, w: f32,
+    w, z, y, x: f32,
 }
 
 // C3D_FQuat — quaternion (same layout as C3D_FVec).
-// Components: i, j, k are the vector part; r is the scalar.
+// Components: .x = i, .y = j, .z = k (the vector part); .w = r (the scalar).
 C3D_FQuat :: C3D_FVec
 
 // C3D_Mtx — row-major 4x4 float matrix.

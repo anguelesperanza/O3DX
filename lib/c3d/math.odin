@@ -7,24 +7,13 @@ import "core:math"
 // Source: citro3d/include/c3d/maths.h
 //
 // ── Field-name mapping ──────────────────────────────────────
-// The C union C3D_FVec stores floats in reverse order:
-//   C struct: { float w; float z; float y; float x; }
-//             at offsets  {0,       4,       8,       12}
-// Odin struct { x, y, z, w: f32 } at the same offsets, so:
-//   Odin .x (offset  0) = C .w  = logical W
-//   Odin .y (offset  4) = C .z  = logical Z
-//   Odin .z (offset  8) = C .y  = logical Y
-//   Odin .w (offset 12) = C .x  = logical X
+// The C union C3D_FVec stores floats in reverse order, and the Odin
+// struct { w, z, y, x: f32 } matches it field for field, so a field name
+// is the component it names: .x is C's .x (offset 12), .w is C's .w
+// (offset 0). C3D_FVec{ x = 1, y = 2, z = 3, w = 4 } is what it reads as.
 //
-// Consequence: FVec4_New(lx, ly, lz, lw)
-//   → C3D_FVec{ x = lw, y = lz, z = ly, w = lx }
-//
-// For quaternions:
-//   C: { float r; float k; float j; float i; } at offsets {0,4,8,12}
-//   Odin .x (offset  0) = real part  (r)
-//   Odin .y (offset  4) = K component (k)
-//   Odin .z (offset  8) = J component (j)
-//   Odin .w (offset 12) = I component (i)
+// For quaternions (C: { float r; float k; float j; float i; }):
+//   .x = i, .y = j, .z = k, .w = r (the real part, offset 0)
 //
 // ── sin / cos / sqrt ────────────────────────────────────────
 // core:math sin_f32, cos_f32, sqrt_f32 are all proc "contextless"
@@ -56,10 +45,9 @@ AngleFromDegrees :: C3D_AngleFromDegrees
 // FVec4 operations  (all proc "contextless" — no ABI bridge needed)
 // ============================================================
 
-// FVec4_New — create a C3D_FVec from logical (x, y, z, w).
-// Memory layout: Odin .x = logical W at offset 0, Odin .w = logical X at offset 12.
+// FVec4_New — create a C3D_FVec from (x, y, z, w).
 FVec4_New :: #force_inline proc "contextless" (lx, ly, lz, lw: f32) -> C3D_FVec {
-    return C3D_FVec{ x = lw, y = lz, z = ly, w = lx }
+    return C3D_FVec{ x = lx, y = ly, z = lz, w = lw }
 }
 
 FVec4_Add :: #force_inline proc "contextless" (a, b: C3D_FVec) -> C3D_FVec {
@@ -78,11 +66,10 @@ FVec4_Scale :: #force_inline proc "contextless" (v: C3D_FVec, s: f32) -> C3D_FVe
     return C3D_FVec{ x = v.x * s, y = v.y * s, z = v.z * s, w = v.w * s }
 }
 
-// FVec4_PerspDivide — divide xyz by w.
-// Odin .x is the logical W (homogeneous divisor).
+// FVec4_PerspDivide — divide xyz by w; w becomes 1.
 FVec4_PerspDivide :: #force_inline proc "contextless" (v: C3D_FVec) -> C3D_FVec {
-    inv := 1.0 / v.x
-    return C3D_FVec{ x = 1.0, y = v.y * inv, z = v.z * inv, w = v.w * inv }
+    inv := 1.0 / v.w
+    return C3D_FVec{ x = v.x * inv, y = v.y * inv, z = v.z * inv, w = 1.0 }
 }
 
 FVec4_Dot :: #force_inline proc "contextless" (a, b: C3D_FVec) -> f32 {
@@ -98,17 +85,15 @@ FVec4_Normalize :: #force_inline proc "contextless" (v: C3D_FVec) -> C3D_FVec {
 }
 
 // ============================================================
-// FVec3 operations  (logical W component is always 0, Odin .x = 0)
+// FVec3 operations  (the w component is always 0)
 // ============================================================
 
 FVec3_New :: #force_inline proc "contextless" (lx, ly, lz: f32) -> C3D_FVec {
-    // FVec4_New(lx, ly, lz, lw=0): x=0, y=lz, z=ly, w=lx
-    return C3D_FVec{ x = 0, y = lz, z = ly, w = lx }
+    return C3D_FVec{ x = lx, y = ly, z = lz, w = 0 }
 }
 
-// FVec3_Dot uses logical .x,.y,.z = Odin .w,.z,.y
 FVec3_Dot :: #force_inline proc "contextless" (a, b: C3D_FVec) -> f32 {
-    return a.w*b.w + a.z*b.z + a.y*b.y
+    return a.x*b.x + a.y*b.y + a.z*b.z
 }
 
 FVec3_Magnitude :: #force_inline proc "contextless" (v: C3D_FVec) -> f32 {
@@ -117,15 +102,15 @@ FVec3_Magnitude :: #force_inline proc "contextless" (v: C3D_FVec) -> f32 {
 
 FVec3_Normalize :: #force_inline proc "contextless" (v: C3D_FVec) -> C3D_FVec {
     m := FVec3_Magnitude(v)
-    return C3D_FVec{ x = 0, y = v.y / m, z = v.z / m, w = v.w / m }
+    return C3D_FVec{ x = v.x / m, y = v.y / m, z = v.z / m, w = 0 }
 }
 
 FVec3_Add :: #force_inline proc "contextless" (a, b: C3D_FVec) -> C3D_FVec {
-    return C3D_FVec{ x = 0, y = a.y + b.y, z = a.z + b.z, w = a.w + b.w }
+    return C3D_FVec{ x = a.x + b.x, y = a.y + b.y, z = a.z + b.z, w = 0 }
 }
 
 FVec3_Subtract :: #force_inline proc "contextless" (a, b: C3D_FVec) -> C3D_FVec {
-    return C3D_FVec{ x = 0, y = a.y - b.y, z = a.z - b.z, w = a.w - b.w }
+    return C3D_FVec{ x = a.x - b.x, y = a.y - b.y, z = a.z - b.z, w = 0 }
 }
 
 FVec3_Distance :: #force_inline proc "contextless" (a, b: C3D_FVec) -> f32 {
@@ -133,21 +118,20 @@ FVec3_Distance :: #force_inline proc "contextless" (a, b: C3D_FVec) -> f32 {
 }
 
 FVec3_Scale :: #force_inline proc "contextless" (v: C3D_FVec, s: f32) -> C3D_FVec {
-    return C3D_FVec{ x = 0, y = v.y * s, z = v.z * s, w = v.w * s }
+    return C3D_FVec{ x = v.x * s, y = v.y * s, z = v.z * s, w = 0 }
 }
 
 FVec3_Negate :: #force_inline proc "contextless" (v: C3D_FVec) -> C3D_FVec {
-    return C3D_FVec{ x = 0, y = -v.y, z = -v.z, w = -v.w }
+    return C3D_FVec{ x = -v.x, y = -v.y, z = -v.z, w = 0 }
 }
 
-// FVec3_Cross — A×B, where logical X = Odin .w, Y = Odin .z, Z = Odin .y.
-// A×B = (Ay·Bz−Az·By, Az·Bx−Ax·Bz, Ax·By−Ay·Bx) in logical xyz.
+// FVec3_Cross — A×B = (Ay·Bz−Az·By, Az·Bx−Ax·Bz, Ax·By−Ay·Bx).
 FVec3_Cross :: #force_inline proc "contextless" (a, b: C3D_FVec) -> C3D_FVec {
     return C3D_FVec{
-        x = 0,
-        y = a.w*b.z - a.z*b.w,   // logical Z
-        z = a.y*b.w - a.w*b.y,   // logical Y
-        w = a.z*b.y - a.y*b.z,   // logical X
+        x = a.y*b.z - a.z*b.y,
+        y = a.z*b.x - a.x*b.z,
+        z = a.x*b.y - a.y*b.x,
+        w = 0,
     }
 }
 
@@ -163,15 +147,13 @@ Mtx_Copy :: #force_inline proc "contextless" (dst, src: ^C3D_Mtx) {
     dst^ = src^
 }
 
-// Mtx_Diagonal — sets diagonal entries in C logical field order:
-//   C r[0].x = Odin r[0].w,  C r[1].y = Odin r[1].z,
-//   C r[2].z = Odin r[2].y,  C r[3].w = Odin r[3].x
+// Mtx_Diagonal — sets the diagonal: r[0].x, r[1].y, r[2].z, r[3].w.
 Mtx_Diagonal :: proc "contextless" (out: ^C3D_Mtx, x, y, z, w: f32) {
     out^ = {}
-    out.r[0].w = x
-    out.r[1].z = y
-    out.r[2].y = z
-    out.r[3].x = w
+    out.r[0].x = x
+    out.r[1].y = y
+    out.r[2].z = z
+    out.r[3].w = w
 }
 
 Mtx_Identity :: #force_inline proc "contextless" (out: ^C3D_Mtx) {
@@ -236,10 +218,10 @@ Mtx_MultiplyFVec3 :: proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec
     return out
 }
 
-// Mtx_MultiplyFVecH — M * (v.xyz, 1). Odin .x is the logical W.
+// Mtx_MultiplyFVecH — M * (v.xyz, 1).
 Mtx_MultiplyFVecH :: #force_inline proc "contextless" (mtx: ^C3D_Mtx, v: C3D_FVec) -> C3D_FVec {
     v4 := v
-    v4.x = 1.0
+    v4.w = 1.0
     return Mtx_MultiplyFVec4(mtx, v4)
 }
 
@@ -338,15 +320,14 @@ Quat_Scale     :: FVec4_Scale
 Quat_Normalize :: FVec4_Normalize
 Quat_Dot       :: FVec4_Dot
 
-// Quat_Identity = (i=0, j=0, k=0, r=1) → FVec4_New(0,0,0,1) → {x=1, y=0, z=0, w=0}
+// Quat_Identity = (i=0, j=0, k=0, r=1).
 Quat_Identity :: #force_inline proc "contextless" () -> C3D_FQuat {
-    return C3D_FVec{ x = 1.0, y = 0, z = 0, w = 0 }
+    return C3D_FVec{ x = 0, y = 0, z = 0, w = 1.0 }
 }
 
 // Quat_Conjugate — negate vector part: C Quat_New(-q.i, -q.j, -q.k, q.r)
-// C .i=Odin .w, .j=Odin .z, .k=Odin .y, .r=Odin .x
 Quat_Conjugate :: #force_inline proc "contextless" (q: C3D_FQuat) -> C3D_FQuat {
-    return C3D_FVec{ x = q.x, y = -q.y, z = -q.z, w = -q.w }
+    return C3D_FVec{ x = -q.x, y = -q.y, z = -q.z, w = q.w }
 }
 
 // Quat_Inverse — q* / (q∙q)

@@ -1,5 +1,10 @@
 # Changelog
 
+## fix-c3d-fvec-field-order
+
+### Breaking
+- `C3D_FVec` (and `C3D_FQuat`) declare their fields as `{ w, z, y, x }`, citro3d's order, so a field name is now the component it holds: `.x` is C's `.x` (it was C's `.w`). Positional literals still lay out the same memory and keep working; code that read or wrote a field by name must swap `.x`/`.w` and `.y`/`.z`. `FVec4_New`, `FVec3_*`, `Quat_Identity`, `Quat_Conjugate`, `Mtx_Diagonal` and `Mtx_MultiplyFVecH` follow.
+
 ## bindings-complete
 
 ### Breaking
