@@ -168,7 +168,7 @@ texture_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     // ── Projection matrix ─────────────────────────────────────────
     // Manual OrthoTilt for 400×240 landscape space (same as Triangle-Example).
     // C3D_FVec memory layout: {w,z,y,x} at offsets {0,4,8,12};
-    // Odin positional literal {x,y,z,w} maps to those offsets.
+    // The Odin struct has the same field order, so the positional literal {w,z,y,x} maps to them.
     projection: c3d.C3D_Mtx
     // Row 0 – screen-Y → GPU-X
     projection.r[0] = c3d.C3D_FVec{ 1.0, 0.0, -2.0/240.0,  0.0}

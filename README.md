@@ -330,9 +330,8 @@ rediscover them.
 **`C3D_FVec` field layout is reversed**
 
 The C struct is declared as `{ float w; float z; float y; float x; }` (offsets 0, 4, 8, 12).
-Odin's binding declares it as `{ x, y, z, w: f32 }` with the same offsets, so the field names are
-swapped: `Odin .x` = `C .w` at offset 0. When writing struct literals the positional order is
-`{x, y, z, w}` — remember that `.x` is actually the W component in memory.
+Odin's binding declares it as `{ w, z, y, x: f32 }`, the same order, so `.x` is C's `.x`. Write
+`C3D_FVec{x = 1, y = 2, z = 3, w = 4}` by name; a positional literal is `{w, z, y, x}`.
 
 **`Mtx_OrthoTilt` bridge does not write to the matrix at runtime**
 
@@ -493,44 +492,25 @@ Full implementation of `maths.h` in `lib/c3d/math.odin`:
 **All math respects the reversed C3D_FVec field layout**
 
 The `C3D_FVec` C struct stores `{ float w; float z; float y; float x; }` at offsets `{0, 4, 8, 12}`.
-Odin declares `{ x, y, z, w: f32 }` at the same offsets, so field names are swapped:
-`Odin .x` = logical W (offset 0), `Odin .w` = logical X (offset 12).
+Odin declares `{ w, z, y, x: f32 }` in the same order, so each field name is the component it holds.
 
-Every static-inline function in `math.odin` accounts for this. The helper `FVec4_New(lx, ly, lz, lw)` is the canonical constructor:
+The helper `FVec4_New(lx, ly, lz, lw)` is the canonical constructor:
 ```odin
 FVec4_New :: proc(lx, ly, lz, lw: f32) -> C3D_FVec {
-    return C3D_FVec{ x = lw, y = lz, z = ly, w = lx }
+    return C3D_FVec{ x = lx, y = ly, z = lz, w = lw }
 }
 ```
-Component-wise operations (Add, Subtract, Scale, Dot) use Odin field names directly since
-the same offset mapping applies symmetrically to both operands.
+Component-wise operations (Add, Subtract, Scale, Dot) use the field names directly.
 
-**FVec3 operations zero out the logical W slot (Odin `.x`)**
+**FVec3 operations zero out the W slot**
 
-`FVec3_New(lx, ly, lz)` = `C3D_FVec{ x=0, y=lz, z=ly, w=lx }`.
-`FVec3_Dot` sums only Odin `.w + .z + .y` (skipping `.x` = logical W = 0).
+`FVec3_New(lx, ly, lz)` = `C3D_FVec{ x=lx, y=ly, z=lz, w=0 }`.
+`FVec3_Dot` sums only `.x + .y + .z` (skipping `.w`).
 
-**FVec3_Cross field derivation**
+**FVec3_Cross and Mtx_Diagonal**
 
-Cross product `A×B = (Ay·Bz−Az·By, Az·Bx−Ax·Bz, Ax·By−Ay·Bx)` in logical x,y,z.
-With the mapping (logical X = Odin `.w`, logical Y = Odin `.z`, logical Z = Odin `.y`):
-```odin
-FVec3_Cross :: proc(a, b: C3D_FVec) -> C3D_FVec {
-    return C3D_FVec{
-        x = 0,
-        y = a.w*b.z - a.z*b.w,   // logical Z
-        z = a.y*b.w - a.w*b.y,   // logical Y
-        w = a.z*b.y - a.y*b.z,   // logical X
-    }
-}
-```
-
-**Mtx_Diagonal field mapping**
-
-`C3D_Mtx` diagonal entries: `r[0].x = lx` in C means `r[0].w = lx` in Odin (Odin `.w` = C `.x`):
-```odin
-out.r[0].w = x;  out.r[1].z = y;  out.r[2].y = z;  out.r[3].x = w
-```
+Both use the field names directly now: `FVec3_Cross` is `x = a.y*b.z - a.z*b.y`, `y = a.z*b.x - a.x*b.z`,
+`z = a.x*b.y - a.y*b.x` (w = 0), and `Mtx_Diagonal` sets `r[0].x`, `r[1].y`, `r[2].z`, `r[3].w`.
 
 **Bridged FVec-by-value functions use output-pointer pattern**
 

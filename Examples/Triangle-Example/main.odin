@@ -113,13 +113,9 @@ triangle_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     // the Mtx_OrthoTilt disassembly for (left=0, right=400, bottom=0,
     // top=240, near=0, far=1, leftHanded=true).
     //
-    // C3D_FVec memory layout: { w, z, y, x } at offsets { 0, 4, 8, 12 }.
-    // Odin declares the fields as { x, y, z, w } at the same offsets, so
-    //   Odin .x  =  C .w  (offset  0)
-    //   Odin .y  =  C .z  (offset  4)
-    //   Odin .z  =  C .y  (offset  8)
-    //   Odin .w  =  C .x  (offset 12)
-    // Struct literal order is positional: {x, y, z, w}.
+    // C3D_FVec memory layout: { w, z, y, x } at offsets { 0, 4, 8, 12 },
+    // and the Odin struct declares its fields in that same order.
+    // Struct literal order is positional: {w, z, y, x}.
     projection: c3d.C3D_Mtx
     // Row 0 – screen-Y → GPU-X:  C(w,z,y,x) = ( 1,  0, -2/240,  0)
     projection.r[0] = c3d.C3D_FVec{ 1.0, 0.0, -2.0/240.0, 0.0}
@@ -129,8 +125,8 @@ triangle_main :: proc "c" (argc: i32, argv: [^]cstring) -> i32 {
     projection.r[2] = c3d.C3D_FVec{-1.0, 1.0, 0.0, 0.0}
     // Row 3 – homogeneous W:      C(w,z,y,x) = ( 1,  0,  0,  0)
     projection.r[3] = c3d.C3D_FVec{ 1.0, 0.0, 0.0, 0.0}
-    r00 := transmute(u32)(projection.r[0].x)
-    r01 := transmute(u32)(projection.r[0].y)
+    r00 := transmute(u32)(projection.r[0].w)
+    r01 := transmute(u32)(projection.r[0].z)
     ctru.printf("\x1b[7;1Hm[0]=%08X %08X", r00, r01)
 
     // ── Explicit GPU state ────────────────────────────────────────
